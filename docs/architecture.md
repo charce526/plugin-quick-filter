@@ -1,0 +1,45 @@
+# 架构与兼容性说明
+
+## 目标
+
+插件锁定 NocoBase 2.2.x。开发基准为 2.2.10，包的 peer 依赖明确限制为 `>=2.2.0 <2.3.0`，避免误装到尚未验证的 2.3 及更高版本。
+
+## 分层
+
+| 层 | 目录 | 职责 |
+| --- | --- | --- |
+| 共享层 | `src/shared` | 字段识别、选项解析、运算符归一、过滤条件生成与通用 UI |
+| V1 适配 | `src/client` | SchemaInitializer、SchemaSettings、数据区块请求合并 |
+| V2 适配 | `src/client-v2` | FlowModel 注册、设置 Flow、资源筛选组 |
+| 服务端 | `src/server` | 客户端插件占位入口，不创建资源或数据表 |
+
+共享层不导入 `@nocobase/client` 或 `@nocobase/client-v2`，防止页面引擎边界混用。
+
+## V1 筛选合并
+
+每个组件使用 `quickFilter:<schema uid>` 作为来源键，写入数据区块请求第二参数中的 `filters` 映射。刷新时调用 NocoBase 的 `mergeFilter` 合并：
+
+1. 所有快捷筛选来源；
+2. 原生普通筛选来源；
+3. 区块基础 `params.filter` 数据范围。
+
+因此清空某个快捷筛选只删除自己的来源键。
+
+## V2 筛选合并
+
+每个 `QuickFilterActionModel` 使用模型 `uid` 作为筛选组 ID：
+
+- 有值：`resource.addFilterGroup(uid, filter)`；
+- 无值：`resource.removeFilterGroup(uid)`；
+- 同步调用 `blockModel.setFilterActive`；
+- 将页码重置为 1 后刷新资源。
+
+这与 NocoBase 2.2.10 原生 `FilterActionModel` 使用同一组资源接口。
+
+## 字段与运算符
+
+标量选项字段默认使用 `$eq`，多选时归一为 `$in`。数组选项字段默认使用 `$match`，多选时归一为 `$anyOf`。同时提供相反运算符供页面设计者选择。
+
+## 配置持久化
+
+V1 配置写入 UI Schema 的 `x-component-props`；V2 配置写入 FlowModel props。选项快照只作为字段提供者暂不可用时的回退，运行时优先读取字段的实时选项。
