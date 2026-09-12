@@ -23,7 +23,6 @@ import {
 type QuickFilterActionProps = QuickFilterConfig & {
   type?: 'default';
   position?: 'left' | 'right';
-  runtimeRevision?: number;
 };
 
 function getCollection(ctx: any) {
@@ -48,20 +47,19 @@ function QuickFilterRuntime({
   field?: CollectionFieldLike;
 }) {
   const config = model.props;
-  const revision = config.runtimeRevision || 0;
   const configKey = JSON.stringify({
     fieldName: config.fieldName,
     defaultValue: config.defaultValue,
     operator: config.operator,
     multiple: config.multiple,
     style: config.style,
-    revision,
   });
   const [value, setValue] = useState<QuickFilterConfig['defaultValue']>(config.defaultValue);
 
   useEffect(() => {
     setValue(config.defaultValue);
-    model.applyValue(config.defaultValue);
+    if (hasFilterValue(config.defaultValue)) model.applyValue(config.defaultValue);
+    else model.detach();
     return () => model.detach();
   }, [configKey, model]);
 
@@ -214,6 +212,7 @@ QuickFilterActionModel.registerFlow({
         const previous = ctx.model.props.fieldName;
         const field = getField(ctx, params.fieldName);
         const changed = previous !== params.fieldName;
+        if (changed) ctx.model.applyValue(undefined);
         ctx.model.setProps({
           fieldName: params.fieldName,
           fieldTitle: changed ? getFieldTitle(field) : params.fieldTitle || getFieldTitle(field),
@@ -225,7 +224,6 @@ QuickFilterActionModel.registerFlow({
           operator: changed
             ? defaultOperator(getFieldInterface(field), Boolean(ctx.model.props.multiple))
             : ctx.model.props.operator,
-          runtimeRevision: Date.now(),
         });
       },
     },
@@ -261,8 +259,8 @@ QuickFilterActionModel.registerFlow({
           style: params.style || 'select',
           multiple,
           operator: defaultOperator(getFieldInterface(field), multiple),
-          runtimeRevision: Date.now(),
         });
+        ctx.model.applyValue(ctx.model.props.defaultValue);
       },
     },
     values: {
@@ -312,8 +310,8 @@ QuickFilterActionModel.registerFlow({
           operator: params.operator,
           candidateValues: params.candidateValues,
           defaultValue: params.defaultValue,
-          runtimeRevision: Date.now(),
         });
+        ctx.model.applyValue(params.defaultValue);
       },
     },
   },

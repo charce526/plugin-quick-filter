@@ -17,7 +17,11 @@ export function getFieldTitle(field?: CollectionFieldLike): any {
 }
 
 export function isSupportedField(field?: CollectionFieldLike): boolean {
-  return SUPPORTED_INTERFACES.includes(getFieldInterface(field) as any);
+  return (
+    SUPPORTED_INTERFACES.includes(getFieldInterface(field) as any) &&
+    field?.filterable !== false &&
+    field?.options?.filterable !== false
+  );
 }
 
 export function isArrayInterface(fieldInterface?: string): boolean {
@@ -148,7 +152,21 @@ export function buildQuickFilter(
 ): Record<string, any> | undefined {
   if (!config.fieldName || !hasFilterValue(value)) return undefined;
   const multiple = config.style === 'multiButton' || Boolean(config.multiple);
-  const normalizedValue = multiple && !Array.isArray(value) ? [value] : value;
+  let normalizedValue: any = multiple && !Array.isArray(value) ? [value] : value;
+
+  if (config.candidateValues?.length) {
+    const allowed = (candidate: unknown) =>
+      config.candidateValues?.some(
+        (item) => Object.is(item, candidate) || String(item) === String(candidate),
+      );
+    normalizedValue = Array.isArray(normalizedValue)
+      ? normalizedValue.filter(allowed)
+      : allowed(normalizedValue)
+        ? normalizedValue
+        : undefined;
+  }
+
+  if (!hasFilterValue(normalizedValue)) return undefined;
   return {
     [config.fieldName]: {
       [effectiveOperator(config, fieldInterface)]: normalizedValue,

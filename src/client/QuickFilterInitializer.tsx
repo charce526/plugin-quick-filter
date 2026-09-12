@@ -93,6 +93,7 @@ export function QuickFilterInitializer() {
     insert({
       type: 'void',
       title: config.fieldTitle,
+      'x-align': 'left',
       'x-toolbar': 'ActionSchemaToolbar',
       'x-settings': 'actionSettings:quickFilter',
       'x-component': 'QuickFilter',

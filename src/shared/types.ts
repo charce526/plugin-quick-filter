@@ -34,6 +34,7 @@ export interface CollectionFieldLike {
   name?: string;
   title?: any;
   interface?: string;
+  filterable?: boolean;
   uiSchema?: Record<string, any>;
   options?: Record<string, any>;
   enum?: any[];
