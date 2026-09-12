@@ -51,6 +51,7 @@ function QuickFilterRuntime({
     fieldName: config.fieldName,
     defaultValue: config.defaultValue,
     operator: config.operator,
+    candidateValues: config.candidateValues,
     multiple: config.multiple,
     style: config.style,
   });
@@ -260,7 +261,7 @@ QuickFilterActionModel.registerFlow({
           multiple,
           operator: defaultOperator(getFieldInterface(field), multiple),
         });
-        ctx.model.applyValue(ctx.model.props.defaultValue);
+        if (!hasFilterValue(ctx.model.props.defaultValue)) ctx.model.applyValue(undefined);
       },
     },
     values: {
@@ -311,7 +312,7 @@ QuickFilterActionModel.registerFlow({
           candidateValues: params.candidateValues,
           defaultValue: params.defaultValue,
         });
-        ctx.model.applyValue(params.defaultValue);
+        if (!hasFilterValue(params.defaultValue)) ctx.model.applyValue(undefined);
       },
     },
   },
