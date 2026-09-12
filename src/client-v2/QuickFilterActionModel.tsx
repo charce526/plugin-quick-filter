@@ -20,10 +20,12 @@ import {
   serializableOptions,
 } from '../shared/utils';
 
-type QuickFilterActionProps = Omit<QuickFilterConfig, 'style'> & {
-  // ActionModel reserves `style` for CSSProperties. This model renders its own
-  // control, so the persisted value is the quick-filter presentation mode.
+type QuickFilterActionProps = Omit<QuickFilterConfig, 'style' | 'defaultValue'> & {
+  // ActionModel reserves `style` for CSSProperties and `defaultValue` for
+  // string/number values. This model renders its own control, so both are
+  // widened to carry the quick-filter presentation mode and value.
   style?: any;
+  defaultValue?: any;
   type?: 'default';
   position?: 'left' | 'right';
 };

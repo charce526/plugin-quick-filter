@@ -5,8 +5,6 @@ import { QuickFilter } from './QuickFilter';
 import { QuickFilterInitializer } from './QuickFilterInitializer';
 import { quickFilterSettings } from './quickFilterSettings';
 
-const INITIALIZERS = ['table:configureActions', 'TableActionInitializers'];
-
 export class PluginQuickFilterClient extends Plugin {
   async load() {
     Object.entries(localeResources).forEach(([language, resource]) => {
@@ -31,9 +29,13 @@ export class PluginQuickFilterClient extends Plugin {
       title: "{{ t('Quick filter', { ns: '@xiezuo/plugin-quick-filter' }) }}",
       Component: QuickFilterInitializer,
     };
-    INITIALIZERS.forEach((name) => {
-      this.app.schemaInitializerManager.get(name)?.add('customize.quickFilter', initializer);
-    });
+    // `table:configureActions` and `TableActionInitializers` are synced aliases
+    // (CompatibleSchemaInitializer); registering one is enough, adding to both
+    // would duplicate the "Quick filter" menu entry.
+    const tableActionInitializer =
+      this.app.schemaInitializerManager.get('TableActionInitializers') ||
+      this.app.schemaInitializerManager.get('table:configureActions');
+    tableActionInitializer?.add('customize.quickFilter', initializer);
   }
 }
 

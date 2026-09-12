@@ -12,7 +12,7 @@
 | 服务端数据表 | 不需要 |
 | 许可证 | AGPL-3.0-only |
 
-本仓库只包含源码，不包含 `dist`、安装包或 Release 构建产物。
+本仓库同时提交源码与 NocoBase 构建产物 `dist`，因此可直接通过 git 安装；`dist` 由插件构建命令生成，请勿手工修改。
 
 ## 功能
 
@@ -43,7 +43,7 @@ git clone https://github.com/charce526/plugin-quick-filter.git \
 3. 选择“快捷筛选”，再选择目标字段与初始样式。
 4. 通过组件右上角设置菜单继续配置标题、默认值、运算符和候选值。
 
-插件同时注册 `table:configureActions` 与旧别名 `TableActionInitializers`，用于覆盖 2.2.x 内的 V1 初始化器差异。
+插件注册 V1 表格操作初始化器：优先现行名 `TableActionInitializers`，回退旧名 `table:configureActions`（二者在 2.2.x 内互为同步别名），避免重复注册相同的菜单项。
 
 ### V2 页面
 
@@ -66,7 +66,7 @@ V2 使用独立的 `QuickFilterActionModel`，通过区块资源的筛选组 API
 node scripts/verify-source.mjs
 ```
 
-该检查验证目录结构、包元数据、2.2.x peer 范围、V1/V2 导入隔离、双初始化器注册和两套筛选合并 API。它不替代在你的 NocoBase 实例中的编译与交互测试。
+该检查验证目录结构、包元数据、2.2.x peer 范围、适配层边界、V1 初始化器注册、V2 动作注册与两套筛选合并 API。它不替代在你的 NocoBase 实例中的编译与交互测试。
 
 ## 设计说明
 

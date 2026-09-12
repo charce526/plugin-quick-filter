@@ -163,5 +163,9 @@ for (const name of [
   assert.ok(types.includes("'" + name + "'"), 'Supported field interface missing: ' + name);
 }
 
-assert.ok(!existsSync(join(root, 'dist')), 'dist must not be committed in this source-only repository');
+// Build artifacts are committed so the plugin can be installed directly from
+// git; assert the packaged entry points are present.
+for (const path of ['dist/client/index.js', 'dist/client-v2/index.js', 'dist/server/index.js']) {
+  assert.ok(existsSync(join(root, path)), 'Missing build artifact: ' + path);
+}
 console.log('Source validation passed: metadata, adapter boundaries, hybrid V2 bridge and filter APIs are consistent.');
