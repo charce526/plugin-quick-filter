@@ -1,4 +1,5 @@
 import { Plugin } from '@nocobase/client';
+import { QuickFilterActionModel } from '../client-v2/QuickFilterActionModel';
 import { localeResources, NAMESPACE } from '../shared/locale';
 import { QuickFilter } from './QuickFilter';
 import { QuickFilterInitializer } from './QuickFilterInitializer';
@@ -18,6 +19,13 @@ export class PluginQuickFilterClient extends Plugin {
       QuickFilterInitializer,
     });
     this.app.schemaSettingsManager.add(quickFilterSettings);
+
+    // NocoBase 2.2.x can render V2 pages inside the legacy client shell. In
+    // that mode only this client entry is loaded, so register the V2 model here
+    // as well. This mirrors the compatibility bridge used by built-in plugins.
+    this.app.flowEngine.registerModels({
+      QuickFilterActionModel,
+    });
 
     const initializer = {
       title: "{{ t('Quick filter', { ns: '@xiezuo/plugin-quick-filter' }) }}",

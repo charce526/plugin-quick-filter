@@ -85,7 +85,8 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
         mode={multiple ? 'multiple' : undefined}
         options={options}
         placeholder={options.length ? allText : noOptionsText}
-        style={{ minWidth: 160 }}
+        size="middle"
+        style={{ minWidth: 180 }}
         value={value as any}
         onChange={(next) => onChange(next as any)}
       />
@@ -93,13 +94,14 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
   } else if (multiple) {
     const selected = Array.isArray(value) ? value : value === undefined ? [] : [value];
     control = (
-      <Space size={4} wrap>
-        <Button size="small" type={selected.length ? 'default' : 'primary'} onClick={() => onChange(undefined)}>
+      <Space size={8} wrap>
+        <Button size="middle" type={selected.length ? 'default' : 'primary'} onClick={() => onChange(undefined)}>
           {allText}
         </Button>
         <Checkbox.Group
           disabled={isDisabled}
           options={options as any}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
           value={selected as any}
           onChange={(next) => onChange(next as QuickFilterPrimitive[])}
         />
@@ -111,7 +113,7 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
         disabled={isDisabled}
         optionType="button"
         buttonStyle="solid"
-        size="small"
+        size="middle"
         value={value === undefined || value === null || value === '' ? CLEAR_VALUE : value}
         onChange={(event) => onChange(event.target.value === CLEAR_VALUE ? undefined : event.target.value)}
       >
@@ -126,7 +128,7 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
   }
 
   const content = (
-    <Space size={8} align="center" wrap>
+    <Space size={10} align="center" wrap>
       {showTitle && title ? <Typography.Text>{title}</Typography.Text> : null}
       {control}
     </Space>

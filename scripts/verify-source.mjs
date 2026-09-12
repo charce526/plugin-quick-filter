@@ -86,13 +86,18 @@ const shared = sourceFiles
   .map((path) => readFileSync(path, 'utf8'))
   .join('\n');
 
-assert.ok(!v1.includes("@nocobase/client-v2"), 'V1 source imports the V2 client');
+assert.ok(!v1.includes("from '@nocobase/client-v2'"), 'V1 adapter directly imports the V2 client');
 assert.ok(!v2.includes("from '@nocobase/client'"), 'V2 source imports the V1 client');
 assert.ok(!shared.includes('@nocobase/client'), 'Shared source depends on a page engine');
 
 const v1Entry = read('src/client/index.tsx');
 assert.ok(v1Entry.includes('table:configureActions'), 'Modern V1 table initializer is not registered');
 assert.ok(v1Entry.includes('TableActionInitializers'), 'Legacy V1 table initializer is not registered');
+assert.ok(v1Entry.includes('QuickFilterActionModel'), 'Hybrid-shell V2 model bridge is missing');
+assert.ok(
+  v1Entry.includes('this.app.flowEngine.registerModels'),
+  'Hybrid-shell V2 model is not registered from the legacy client entry',
+);
 
 const v1Filter = read('src/client/QuickFilter.tsx');
 assert.ok(v1Filter.includes('mergeFilter'), 'V1 filter composition is missing');
@@ -122,6 +127,8 @@ const control = read('src/shared/QuickFilterControl.tsx');
 assert.ok(control.includes("styleType === 'select'"), 'Select display mode is missing');
 assert.ok(control.includes('<Radio.Group'), 'Single-button display mode is missing');
 assert.ok(control.includes('<Checkbox.Group'), 'Multi-button display mode is missing');
+assert.ok(!control.includes('size="small"'), 'Quick-filter controls still use the undersized variant');
+assert.ok(control.includes('minWidth: 180'), 'Quick-filter select width was not enlarged');
 
 const v2Model = read('src/client-v2/QuickFilterActionModel.tsx');
 for (const api of ['addFilterGroup', 'removeFilterGroup', 'setFilterActive', 'setPage']) {
@@ -149,4 +156,4 @@ for (const name of [
 }
 
 assert.ok(!existsSync(join(root, 'dist')), 'dist must not be committed in this source-only repository');
-console.log('Source validation passed: metadata, structure, V1/V2 isolation and filter APIs are consistent.');
+console.log('Source validation passed: metadata, adapter boundaries, hybrid V2 bridge and filter APIs are consistent.');

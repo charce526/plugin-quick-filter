@@ -9,7 +9,7 @@
 | 层 | 目录 | 职责 |
 | --- | --- | --- |
 | 共享层 | `src/shared` | 字段识别、选项解析、运算符归一、过滤条件生成与通用 UI |
-| V1 适配 | `src/client` | SchemaInitializer、SchemaSettings、数据区块请求合并 |
+| V1 适配 | `src/client` | SchemaInitializer、SchemaSettings、数据区块请求合并及混合外壳 V2 模型桥接 |
 | V2 适配 | `src/client-v2` | FlowModel 注册、设置 Flow、资源筛选组 |
 | 服务端 | `src/server` | 客户端插件占位入口，不创建资源或数据表 |
 
@@ -38,7 +38,7 @@ V1 的新建弹窗会显式继承当前页面的 `SchemaOptionsContext`，确保
 
 这与 NocoBase 2.2.10 原生 `FilterActionModel` 使用同一组资源接口。
 
-模型既注册到 FlowEngine，也注册到 `CollectionActionGroupModel` 的动作表；前者负责模型创建与恢复，后者确保它出现在 V2 集合区块的“添加操作”菜单中。
+模型既注册到 FlowEngine，也注册到 `CollectionActionGroupModel` 的动作表；前者负责模型创建与恢复，后者确保它出现在 V2 集合区块的“添加操作”菜单中。NocoBase 2.2.x 还可能在旧客户端外壳中承载 V2 页面，因此 `src/client` 会像官方操作插件一样同步注册该模型；独立 V2 外壳则继续使用 `src/client-v2` 入口。
 
 ## 字段与运算符
 
