@@ -5,8 +5,8 @@ import {
   useDataBlockProps,
   useDataBlockRequestGetter,
   useDataLoadingMode,
-  useFieldSchema,
 } from '@nocobase/client';
+import { useFieldSchema } from '@formily/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { QuickFilterControl } from '../shared/QuickFilterControl';
 import type { CollectionFieldLike, QuickFilterConfig, QuickFilterPrimitive } from '../shared/types';

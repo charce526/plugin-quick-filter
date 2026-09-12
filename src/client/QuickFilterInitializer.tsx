@@ -1,4 +1,5 @@
 import { FormLayout } from '@formily/antd-v5';
+import { FormProvider } from '@formily/react';
 import {
   FormDialog,
   SchemaComponent,
@@ -30,8 +31,9 @@ export function QuickFilterInitializer() {
 
     const values = await FormDialog(
       t('Quick filter'),
-      () => (
-        <FormLayout layout="vertical">
+      (form) => (
+        <FormProvider form={form}>
+          <FormLayout layout="vertical">
           <SchemaComponent
             schema={{
               type: 'object',
@@ -69,7 +71,8 @@ export function QuickFilterInitializer() {
               },
             }}
           />
-        </FormLayout>
+          </FormLayout>
+        </FormProvider>
       ),
       theme,
     ).open({
