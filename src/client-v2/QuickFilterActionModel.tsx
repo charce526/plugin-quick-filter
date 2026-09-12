@@ -1,5 +1,5 @@
 import { MultiRecordResource, tExpr } from '@nocobase/flow-engine';
-import { ActionModel, CollectionBlockModel } from '@nocobase/client-v2';
+import { ActionModel, CollectionActionGroupModel, CollectionBlockModel } from '@nocobase/client-v2';
 import React, { useEffect, useState } from 'react';
 import { QuickFilterControl } from '../shared/QuickFilterControl';
 import { NAMESPACE } from '../shared/locale';
@@ -20,7 +20,10 @@ import {
   serializableOptions,
 } from '../shared/utils';
 
-type QuickFilterActionProps = QuickFilterConfig & {
+type QuickFilterActionProps = Omit<QuickFilterConfig, 'style'> & {
+  // ActionModel reserves `style` for CSSProperties. This model renders its own
+  // control, so the persisted value is the quick-filter presentation mode.
+  style?: any;
   type?: 'default';
   position?: 'left' | 'right';
 };
@@ -316,4 +319,11 @@ QuickFilterActionModel.registerFlow({
       },
     },
   },
+});
+
+// NocoBase 2.2.x action groups keep an explicit registry in addition to the
+// FlowEngine model registry. Registering in both places makes this action show
+// up consistently in the V2 collection block's "Add action" menu.
+CollectionActionGroupModel.registerActionModels({
+  QuickFilterActionModel,
 });

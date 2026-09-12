@@ -1,15 +1,16 @@
 import { FormLayout } from '@formily/antd-v5';
-import { FormProvider } from '@formily/react';
+import { SchemaOptionsContext } from '@formily/react';
 import {
   FormDialog,
   SchemaComponent,
+  SchemaComponentOptions,
   SchemaInitializerItem,
   useCollection,
   useGlobalTheme,
   useSchemaInitializer,
   useSchemaInitializerItem,
 } from '@nocobase/client';
-import React from 'react';
+import React, { useContext } from 'react';
 import type { CollectionFieldLike } from '../shared/types';
 import { createDefaultConfig, getFieldTitle, isSupportedField } from '../shared/utils';
 import { useQuickFilterTranslation } from './locale';
@@ -19,6 +20,7 @@ export function QuickFilterInitializer() {
   const { insert } = useSchemaInitializer();
   const collection = useCollection() as any;
   const { theme } = useGlobalTheme();
+  const schemaOptions = useContext(SchemaOptionsContext);
   const { t } = useQuickFilterTranslation();
   const fields = ((collection?.fields || []) as CollectionFieldLike[]).filter(isSupportedField);
   const fieldOptions = fields.map((field) => ({
@@ -31,48 +33,51 @@ export function QuickFilterInitializer() {
 
     const values = await FormDialog(
       t('Quick filter'),
-      (form) => (
-        <FormProvider form={form}>
+      () => (
+        <SchemaComponentOptions
+          scope={schemaOptions?.scope}
+          components={{ ...(schemaOptions?.components || {}) }}
+        >
           <FormLayout layout="vertical">
-          <SchemaComponent
-            schema={{
-              type: 'object',
-              properties: {
-                fieldName: {
-                  title: t('Target field'),
-                  enum: fieldOptions,
-                  required: true,
-                  'x-decorator': 'FormItem',
-                  'x-component': 'Select',
+            <SchemaComponent
+              schema={{
+                type: 'object',
+                properties: {
+                  fieldName: {
+                    title: t('Target field'),
+                    enum: fieldOptions,
+                    required: true,
+                    'x-decorator': 'FormItem',
+                    'x-component': 'Select',
+                  },
+                  showTitle: {
+                    title: t('Show title'),
+                    default: true,
+                    'x-decorator': 'FormItem',
+                    'x-component': 'Checkbox',
+                  },
+                  style: {
+                    title: t('Style'),
+                    default: 'select',
+                    enum: [
+                      { label: t('Select'), value: 'select' },
+                      { label: t('Button'), value: 'button' },
+                      { label: t('Multiple buttons'), value: 'multiButton' },
+                    ],
+                    'x-decorator': 'FormItem',
+                    'x-component': 'Radio.Group',
+                  },
+                  multiple: {
+                    title: t('Multiple selection'),
+                    default: false,
+                    'x-decorator': 'FormItem',
+                    'x-component': 'Checkbox',
+                  },
                 },
-                showTitle: {
-                  title: t('Show title'),
-                  default: true,
-                  'x-decorator': 'FormItem',
-                  'x-component': 'Checkbox',
-                },
-                style: {
-                  title: t('Style'),
-                  default: 'select',
-                  enum: [
-                    { label: t('Select'), value: 'select' },
-                    { label: t('Button'), value: 'button' },
-                    { label: t('Multiple buttons'), value: 'multiButton' },
-                  ],
-                  'x-decorator': 'FormItem',
-                  'x-component': 'Radio.Group',
-                },
-                multiple: {
-                  title: t('Multiple selection'),
-                  default: false,
-                  'x-decorator': 'FormItem',
-                  'x-component': 'Checkbox',
-                },
-              },
-            }}
-          />
+              }}
+            />
           </FormLayout>
-        </FormProvider>
+        </SchemaComponentOptions>
       ),
       theme,
     ).open({

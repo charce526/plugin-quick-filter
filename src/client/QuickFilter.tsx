@@ -1,10 +1,12 @@
 import {
   mergeFilter,
+  SortableItem,
   useCollection,
   useCompile,
   useDataBlockProps,
   useDataBlockRequestGetter,
   useDataLoadingMode,
+  useSchemaToolbarRender,
 } from '@nocobase/client';
 import { useFieldSchema } from '@formily/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -15,6 +17,7 @@ import { useQuickFilterTranslation } from './locale';
 
 export function QuickFilter() {
   const fieldSchema = useFieldSchema();
+  const { render: renderToolbar } = useSchemaToolbarRender(fieldSchema);
   const collection = useCollection() as any;
   const compile = useCompile();
   const { t } = useQuickFilterTranslation();
@@ -87,21 +90,28 @@ export function QuickFilter() {
   };
 
   return (
-    <QuickFilterControl
-      title={compile(config.fieldTitle || getFieldTitle(currentField) || config.fieldName)}
-      showTitle={config.showTitle !== false}
-      tooltip={compile(config.tooltip)}
-      styleType={config.style || 'select'}
-      multiple={config.multiple}
-      value={value}
-      field={currentField}
-      fallbackOptions={config.options}
-      candidateValues={config.candidateValues}
-      allText={t('All')}
-      noOptionsText={t('No options')}
-      compileLabel={compile}
-      onChange={handleChange}
-    />
+    <SortableItem
+      component="div"
+      className="nb-quick-filter"
+      style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}
+    >
+      {renderToolbar({ draggable: true })}
+      <QuickFilterControl
+        title={compile(config.fieldTitle || getFieldTitle(currentField) || config.fieldName)}
+        showTitle={config.showTitle !== false}
+        tooltip={compile(config.tooltip)}
+        styleType={config.style || 'select'}
+        multiple={config.multiple}
+        value={value}
+        field={currentField}
+        fallbackOptions={config.options}
+        candidateValues={config.candidateValues}
+        allText={t('All')}
+        noOptionsText={t('No options')}
+        compileLabel={compile}
+        onChange={handleChange}
+      />
+    </SortableItem>
   );
 }
 

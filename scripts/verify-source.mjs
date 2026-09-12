@@ -17,6 +17,9 @@ const required = [
   'src/client-v2/QuickFilterActionModel.tsx',
   'src/server/index.ts',
   'src/server/plugin.ts',
+  'client.js',
+  'client-v2.js',
+  'server.js',
 ];
 
 for (const path of required) {
@@ -98,11 +101,40 @@ assert.ok(
   v1Filter.includes('const { getDataBlockRequest } = useDataBlockRequestGetter()'),
   'V1 request getter does not match the NocoBase 2.2.x API',
 );
+assert.ok(v1Filter.includes('useSchemaToolbarRender'), 'V1 schema settings toolbar is not rendered');
+assert.ok(v1Filter.includes('<SortableItem'), 'V1 quick filter is not mounted as a configurable schema item');
+
+const v1Initializer = read('src/client/QuickFilterInitializer.tsx');
+assert.ok(
+  v1Initializer.includes('SchemaComponentOptions'),
+  'V1 initializer dialog does not preserve the page schema component context',
+);
+assert.ok(
+  v1Initializer.includes('SchemaOptionsContext'),
+  'V1 initializer dialog does not read the page schema options',
+);
+assert.ok(!v1Initializer.includes('<FormProvider'), 'V1 initializer redundantly nests a Formily form provider');
+
+const v1Settings = read('src/client/quickFilterSettings.tsx');
+assert.ok(v1Settings.includes("type: 'remove'"), 'V1 remove setting is missing');
+
+const control = read('src/shared/QuickFilterControl.tsx');
+assert.ok(control.includes("styleType === 'select'"), 'Select display mode is missing');
+assert.ok(control.includes('<Radio.Group'), 'Single-button display mode is missing');
+assert.ok(control.includes('<Checkbox.Group'), 'Multi-button display mode is missing');
 
 const v2Model = read('src/client-v2/QuickFilterActionModel.tsx');
 for (const api of ['addFilterGroup', 'removeFilterGroup', 'setFilterActive', 'setPage']) {
   assert.ok(v2Model.includes(api), 'V2 resource integration is missing: ' + api);
 }
+assert.ok(
+  v2Model.includes('CollectionActionGroupModel.registerActionModels'),
+  'V2 model is not registered in the collection action menu',
+);
+
+assert.equal(read('client.js').trim(), "module.exports = require('./dist/client/index.js');");
+assert.equal(read('client-v2.js').trim(), "module.exports = require('./dist/client-v2/index.js');");
+assert.equal(read('server.js').trim(), "module.exports = require('./dist/server/index.js');");
 
 const types = read('src/shared/types.ts');
 for (const name of [

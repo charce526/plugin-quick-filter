@@ -25,6 +25,8 @@
 
 因此清空某个快捷筛选只删除自己的来源键。
 
+V1 的新建弹窗会显式继承当前页面的 `SchemaOptionsContext`，确保弹窗 Portal 中仍能解析 NocoBase 的表单组件。快捷筛选本体使用 `SortableItem` 并主动渲染 `ActionSchemaToolbar`，因此设置、拖动和删除均沿用原生 UI Schema 机制。
+
 ## V2 筛选合并
 
 每个 `QuickFilterActionModel` 使用模型 `uid` 作为筛选组 ID：
@@ -35,6 +37,8 @@
 - 将页码重置为 1 后刷新资源。
 
 这与 NocoBase 2.2.10 原生 `FilterActionModel` 使用同一组资源接口。
+
+模型既注册到 FlowEngine，也注册到 `CollectionActionGroupModel` 的动作表；前者负责模型创建与恢复，后者确保它出现在 V2 集合区块的“添加操作”菜单中。
 
 ## 字段与运算符
 

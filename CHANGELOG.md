@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Preserved the V1 page schema context inside the quick-filter creation dialog so field and display-style selections work normally.
+- Rendered the V1 schema toolbar around quick filters, enabling configuration, drag handling and deletion.
+- Registered the V2 model in the collection action group's explicit registry so its field submenu is visible.
+- Extended source verification to cover the V1 toolbar/display modes, V2 action-menu registration and package entry shims.
+
 ## 1.0.0
 
 - Initial source release.
