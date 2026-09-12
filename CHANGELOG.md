@@ -10,6 +10,7 @@
 - Extended source verification to cover the V1 toolbar/display modes, V2 action-menu registration and package entry shims.
 - Fixed the declaration build and committed the NocoBase build output (`dist`) so the plugin can be installed directly from git.
 - Registered a single table action initializer and removed an unused locale key.
+- Added a distributable release package (`release/*.tgz`) and a tag-driven GitHub Release workflow.
 
 ## 1.0.0
 

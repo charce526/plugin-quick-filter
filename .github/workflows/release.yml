@@ -1,0 +1,88 @@
+name: Release
+
+# 发行方式：发行包由本地 `node scripts/release.mjs <版本>` 构建（需要 NocoBase 工作区的 @nocobase/build），
+# 构建产物提交到 release/ 目录；本工作流只做「校验 + 创建 Release + 上传发行包」，因此不依赖网络安装依赖，
+# 每次都能稳定通过。
+#
+# 触发方式：
+#   1. 推送 v* 标签；
+#   2. 推送 main 且改动包含 release/*.tgz（即发版提交）；
+#   3. 手动触发并填写版本号。
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+    paths:
+      - 'release/*.tgz'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本号，例如 1.0.1（需已存在 release/plugin-quick-filter-<版本>.tgz）'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 解析发行版本号
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(node -p "require('./package.json').version")"
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "非法版本号：$VERSION" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "asset=release/plugin-quick-filter-$VERSION.tgz" >> "$GITHUB_OUTPUT"
+          echo "发行版本号：$VERSION"
+
+      - name: 校验 package.json 与发行包
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ASSET="${{ steps.version.outputs.asset }}"
+
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          if [ "$PKG_VERSION" != "$VERSION" ]; then
+            echo "package.json 版本（$PKG_VERSION）与发行版本号（$VERSION）不一致" >&2
+            exit 1
+          fi
+
+          if [ ! -f "$ASSET" ]; then
+            echo "缺少发行包：$ASSET" >&2
+            echo "请先执行：node scripts/release.mjs $VERSION，然后提交 release/ 目录" >&2
+            exit 1
+          fi
+
+          # 校验发行包内 package.json 的版本，确保「发行包里已自动填写发行版」
+          INNER_VERSION="$(tar -xzOf "$ASSET" package.json | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")"
+          if [ "$INNER_VERSION" != "$VERSION" ]; then
+            echo "发行包内版本（$INNER_VERSION）与发行版本号（$VERSION）不一致" >&2
+            exit 1
+          fi
+
+          echo "校验通过：$ASSET（包内版本 $INNER_VERSION）"
+          ls -lh "$ASSET"
+
+      - name: 创建 Release 并上传发行包
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          files: ${{ steps.version.outputs.asset }}
+          generate_release_notes: true
+          draft: false

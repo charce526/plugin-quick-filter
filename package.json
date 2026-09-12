@@ -35,6 +35,13 @@
     "node": ">=22"
   },
   "main": "dist/server/index.js",
+  "files": [
+    "client.js",
+    "client-v2.js",
+    "server.js",
+    "CHANGELOG.md",
+    "NOTICE.md"
+  ],
   "scripts": {
     "test": "node scripts/verify-source.mjs",
     "verify:source": "node scripts/verify-source.mjs",

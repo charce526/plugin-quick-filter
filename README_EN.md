@@ -21,4 +21,8 @@ The repository ships both source and the NocoBase build output (`dist`), so the 
 - V1 registers the 2.2.x table action initializer (current name with a legacy fallback).
 - V2 uses a dedicated action model and resource filter groups.
 
+## Release
+
+`release/` holds the distributable package `plugin-quick-filter-<version>.tgz`, produced by `node scripts/release.mjs <version>` (which runs `yarn build @xiezuo/plugin-quick-filter --tar`). Pushing a `v*` tag, or a main commit that includes `release/*.tgz`, triggers `.github/workflows/release.yml` to validate the version and publish a GitHub Release with the package attached.
+
 See [README.md](README.md) for installation and usage, and [docs/architecture.md](docs/architecture.md) for implementation details.

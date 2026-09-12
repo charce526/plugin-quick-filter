@@ -68,6 +68,10 @@ node scripts/verify-source.mjs
 
 该检查验证目录结构、包元数据、2.2.x peer 范围、适配层边界、V1 初始化器注册、V2 动作注册与两套筛选合并 API。它不替代在你的 NocoBase 实例中的编译与交互测试。
 
+## 发行
+
+`release/` 目录保存可直接分发/安装的发行包 `plugin-quick-filter-<版本>.tgz`，由 `node scripts/release.mjs <版本>` 生成（内部执行 `yarn build @xiezuo/plugin-quick-filter --tar`）。推送 `v*` 标签、或推送包含 `release/*.tgz` 的 main 提交时，`.github/workflows/release.yml` 会校验版本并自动创建 GitHub Release、附带该发行包。
+
 ## 设计说明
 
 详见 [docs/architecture.md](docs/architecture.md)。
