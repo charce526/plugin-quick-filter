@@ -13,6 +13,7 @@ import {
   createDefaultConfig,
   defaultOperator,
   getFieldInterface,
+  getFieldTitle,
   hasFilterValue,
   isSupportedField,
   operatorOptions,
@@ -20,6 +21,7 @@ import {
 } from '../shared/utils';
 
 type QuickFilterActionProps = QuickFilterConfig & {
+  type?: 'default';
   position?: 'left' | 'right';
   runtimeRevision?: number;
 };
@@ -70,7 +72,7 @@ function QuickFilterRuntime({
 
   return (
     <QuickFilterControl
-      title={model.context.t(config.fieldTitle || field?.title || config.fieldName, { ns: NAMESPACE })}
+      title={model.context.t(config.fieldTitle || getFieldTitle(field) || config.fieldName, { ns: NAMESPACE })}
       showTitle={config.showTitle !== false}
       tooltip={config.tooltip}
       styleType={config.style || 'select'}
@@ -155,7 +157,7 @@ QuickFilterActionModel.define({
   children: async (ctx) =>
     getFields(ctx).map((field) => ({
       key: 'quick-filter-' + field.name,
-      label: field.title || field.name,
+      label: getFieldTitle(field),
       useModel: 'QuickFilterActionModel',
       createModelOptions: () => ({
         use: 'QuickFilterActionModel',
@@ -179,7 +181,7 @@ QuickFilterActionModel.registerFlow({
           fieldName: {
             title: tExpr('Target field', { ns: NAMESPACE }),
             required: true,
-            enum: fields.map((field) => ({ label: field.title || field.name, value: field.name })),
+            enum: fields.map((field) => ({ label: getFieldTitle(field), value: field.name })),
             'x-decorator': 'FormItem',
             'x-component': 'Select',
           },
@@ -214,7 +216,7 @@ QuickFilterActionModel.registerFlow({
         const changed = previous !== params.fieldName;
         ctx.model.setProps({
           fieldName: params.fieldName,
-          fieldTitle: params.fieldTitle || field?.title || field?.name,
+          fieldTitle: changed ? getFieldTitle(field) : params.fieldTitle || getFieldTitle(field),
           showTitle: params.showTitle !== false,
           tooltip: params.tooltip,
           options: serializableOptions(field),

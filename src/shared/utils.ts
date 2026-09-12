@@ -12,6 +12,10 @@ export function getFieldInterface(field?: CollectionFieldLike): string {
   return String(field?.interface || field?.options?.interface || '');
 }
 
+export function getFieldTitle(field?: CollectionFieldLike): any {
+  return field?.title || field?.uiSchema?.title || field?.name || '';
+}
+
 export function isSupportedField(field?: CollectionFieldLike): boolean {
   return SUPPORTED_INTERFACES.includes(getFieldInterface(field) as any);
 }
@@ -164,7 +168,7 @@ export function createDefaultConfig(field: CollectionFieldLike): QuickFilterConf
   const fieldInterface = getFieldInterface(field);
   return {
     fieldName: String(field.name || ''),
-    fieldTitle: field.title || field.name,
+    fieldTitle: getFieldTitle(field),
     showTitle: true,
     style: 'select',
     multiple: false,

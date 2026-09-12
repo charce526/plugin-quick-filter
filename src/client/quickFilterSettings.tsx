@@ -5,6 +5,7 @@ import type { CollectionFieldLike, QuickFilterConfig } from '../shared/types';
 import {
   defaultOperator,
   getFieldInterface,
+  getFieldTitle,
   isSupportedField,
   operatorOptions,
   serializableOptions,
@@ -40,7 +41,7 @@ export const quickFilterSettings = new SchemaSettings({
                 title: t('Target field'),
                 default: config.fieldName,
                 enum: fields.map((item) => ({
-                  label: compile(item.title || item.name),
+                  label: compile(getFieldTitle(item)),
                   value: item.name,
                 })),
                 required: true,
@@ -120,7 +121,7 @@ export const quickFilterSettings = new SchemaSettings({
               ...config,
               ...values,
               fieldName: String(nextField?.name || values.fieldName),
-              fieldTitle: values.fieldTitle || nextField?.title || nextField?.name,
+              fieldTitle: fieldChanged ? getFieldTitle(nextField) : values.fieldTitle || getFieldTitle(nextField),
               showTitle: values.showTitle !== false,
               multiple: nextMultiple,
               operator: fieldChanged

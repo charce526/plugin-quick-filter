@@ -4,12 +4,13 @@ import {
   useCompile,
   useDataBlockProps,
   useDataBlockRequestGetter,
+  useDataLoadingMode,
   useFieldSchema,
 } from '@nocobase/client';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { QuickFilterControl } from '../shared/QuickFilterControl';
 import type { CollectionFieldLike, QuickFilterConfig, QuickFilterPrimitive } from '../shared/types';
-import { buildQuickFilter, hasFilterValue } from '../shared/utils';
+import { buildQuickFilter, getFieldInterface, getFieldTitle, hasFilterValue } from '../shared/utils';
 import { useQuickFilterTranslation } from './locale';
 
 export function QuickFilter() {
@@ -17,7 +18,8 @@ export function QuickFilter() {
   const collection = useCollection() as any;
   const compile = useCompile();
   const { t } = useQuickFilterTranslation();
-  const getDataBlockRequest = useDataBlockRequestGetter();
+  const { getDataBlockRequest } = useDataBlockRequestGetter();
+  const dataLoadingMode = useDataLoadingMode();
   const blockProps = useDataBlockProps() as any;
   const config = (fieldSchema['x-component-props'] || {}) as QuickFilterConfig;
   const configKey = JSON.stringify(config);
@@ -36,26 +38,32 @@ export function QuickFilter() {
       const firstParams = service.params?.[0] || {};
       const secondParams = service.params?.[1] || {};
       const filters = { ...(secondParams.filters || {}) };
-      const filter = buildQuickFilter(config, nextValue, (currentField as any)?.interface || (currentField as any)?.options?.interface);
+      const filter = buildQuickFilter(config, nextValue, getFieldInterface(currentField));
 
       if (filter) filters[sourceKey] = filter;
       else delete filters[sourceKey];
 
       const baseFilter = blockProps?.params?.filter ?? firstParams.filter;
-      const mergedFilter = mergeFilter([...Object.values(filters), baseFilter].filter(Boolean));
-      service.run(
+      const nextParams = [
         {
           ...firstParams,
           page: 1,
-          filter: mergedFilter,
+          filter: mergeFilter([...Object.values(filters), baseFilter].filter(Boolean)),
         },
         {
           ...secondParams,
           filters,
         },
-      );
+      ];
+
+      if (dataLoadingMode === 'manual' && !filter) {
+        service.params = nextParams;
+        service.mutate(undefined);
+      } else {
+        service.run(...nextParams);
+      }
     },
-    [blockProps?.params?.filter, configKey, currentField, getDataBlockRequest, sourceKey],
+    [blockProps?.params?.filter, configKey, currentField, dataLoadingMode, getDataBlockRequest, sourceKey],
   );
 
   useEffect(() => {
@@ -80,7 +88,7 @@ export function QuickFilter() {
 
   return (
     <QuickFilterControl
-      title={compile(config.fieldTitle || currentField?.title || config.fieldName)}
+      title={compile(config.fieldTitle || getFieldTitle(currentField) || config.fieldName)}
       showTitle={config.showTitle !== false}
       tooltip={compile(config.tooltip)}
       styleType={config.style || 'select'}

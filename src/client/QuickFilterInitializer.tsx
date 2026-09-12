@@ -10,7 +10,7 @@ import {
 } from '@nocobase/client';
 import React from 'react';
 import type { CollectionFieldLike } from '../shared/types';
-import { createDefaultConfig, isSupportedField } from '../shared/utils';
+import { createDefaultConfig, getFieldTitle, isSupportedField } from '../shared/utils';
 import { useQuickFilterTranslation } from './locale';
 
 export function QuickFilterInitializer() {
@@ -21,7 +21,7 @@ export function QuickFilterInitializer() {
   const { t } = useQuickFilterTranslation();
   const fields = ((collection?.fields || []) as CollectionFieldLike[]).filter(isSupportedField);
   const fieldOptions = fields.map((field) => ({
-    label: field.title || field.name,
+    label: getFieldTitle(field),
     value: field.name,
   }));
 
