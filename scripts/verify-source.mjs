@@ -50,6 +50,26 @@ function walk(path) {
 
 const sourceFiles = walk(join(root, 'src')).filter((path) => /\.(ts|tsx)$/.test(path));
 const read = (path) => readFileSync(join(root, path), 'utf8');
+
+for (const sourceFile of sourceFiles) {
+  const source = readFileSync(sourceFile, 'utf8');
+  const importPattern = /from\s+['"](\.[^'"]+)['"]/g;
+  let match;
+  while ((match = importPattern.exec(source))) {
+    const target = resolve(dirname(sourceFile), match[1]);
+    const candidates = [
+      target,
+      target + '.ts',
+      target + '.tsx',
+      join(target, 'index.ts'),
+      join(target, 'index.tsx'),
+    ];
+    assert.ok(
+      candidates.some((candidate) => existsSync(candidate)),
+      'Unresolved relative import: ' + relative(root, sourceFile) + ' -> ' + match[1],
+    );
+  }
+}
 const v1 = sourceFiles
   .filter((path) => relative(root, path).startsWith('src/client/'))
   .map((path) => readFileSync(path, 'utf8'))
@@ -74,6 +94,10 @@ assert.ok(v1Entry.includes('TableActionInitializers'), 'Legacy V1 table initiali
 const v1Filter = read('src/client/QuickFilter.tsx');
 assert.ok(v1Filter.includes('mergeFilter'), 'V1 filter composition is missing');
 assert.ok(v1Filter.includes('filters'), 'V1 named filter sources are missing');
+assert.ok(
+  v1Filter.includes('const { getDataBlockRequest } = useDataBlockRequestGetter()'),
+  'V1 request getter does not match the NocoBase 2.2.x API',
+);
 
 const v2Model = read('src/client-v2/QuickFilterActionModel.tsx');
 for (const api of ['addFilterGroup', 'removeFilterGroup', 'setFilterActive', 'setPage']) {
