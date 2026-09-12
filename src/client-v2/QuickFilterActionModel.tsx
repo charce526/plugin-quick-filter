@@ -58,14 +58,16 @@ function QuickFilterRuntime({
     multiple: config.multiple,
     style: config.style,
   });
-  const [value, setValue] = useState<QuickFilterConfig['defaultValue']>(config.defaultValue);
+  const [value, setValue] = useState<QuickFilterConfig['defaultValue']>(() => model.getCurrentValue());
 
   useEffect(() => {
-    setValue(config.defaultValue);
-    if (hasFilterValue(config.defaultValue)) model.applyValue(config.defaultValue);
-    else model.detach();
-    return () => model.detach();
+    setValue(model.getCurrentValue());
   }, [configKey, model]);
+
+  // FlowEngine may temporarily remount an action while the collection block is
+  // refreshing. Keep resource mutations out of the React cleanup path and let
+  // the model guard the initial default-value application instead.
+  useEffect(() => model.applyDefaultValueOnce(), [model]);
 
   const change = (nextValue: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined) => {
     setValue(nextValue);
@@ -112,7 +114,28 @@ export class QuickFilterActionModel extends ActionModel {
   enableEditType = false;
   enableEditDanger = false;
 
+  private currentValue: QuickFilterConfig['defaultValue'];
+  private hasCurrentValue = false;
+  private defaultValueApplied = false;
+
+  getCurrentValue() {
+    return this.hasCurrentValue ? this.currentValue : this.props.defaultValue;
+  }
+
+  applyDefaultValueOnce() {
+    if (this.defaultValueApplied) return;
+    this.defaultValueApplied = true;
+
+    const defaultValue = this.props.defaultValue;
+    this.currentValue = defaultValue;
+    this.hasCurrentValue = true;
+    if (hasFilterValue(defaultValue)) this.applyValue(defaultValue);
+  }
+
   applyValue(value: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined) {
+    this.currentValue = value;
+    this.hasCurrentValue = true;
+
     const blockModel = this.context.blockModel as CollectionBlockModel;
     const resource = blockModel?.resource as MultiRecordResource;
     if (!blockModel || !resource) return;
@@ -145,6 +168,12 @@ export class QuickFilterActionModel extends ActionModel {
     const resource = blockModel?.resource as MultiRecordResource;
     blockModel?.setFilterActive?.(this.uid, false);
     resource?.removeFilterGroup?.(this.uid);
+  }
+
+  async destroy() {
+    const destroyed = await super.destroy();
+    if (destroyed) this.applyValue(undefined);
+    return destroyed;
   }
 
   render() {
@@ -264,7 +293,7 @@ QuickFilterActionModel.registerFlow({
           multiple,
           operator: defaultOperator(getFieldInterface(field), multiple),
         });
-        if (!hasFilterValue(ctx.model.props.defaultValue)) ctx.model.applyValue(undefined);
+        ctx.model.applyValue(ctx.model.getCurrentValue());
       },
     },
     values: {
@@ -315,7 +344,7 @@ QuickFilterActionModel.registerFlow({
           candidateValues: params.candidateValues,
           defaultValue: params.defaultValue,
         });
-        if (!hasFilterValue(params.defaultValue)) ctx.model.applyValue(undefined);
+        ctx.model.applyValue(params.defaultValue);
       },
     },
   },

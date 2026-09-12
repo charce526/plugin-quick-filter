@@ -138,6 +138,14 @@ assert.ok(
   v2Model.includes('CollectionActionGroupModel.registerActionModels'),
   'V2 model is not registered in the collection action menu',
 );
+assert.ok(
+  v2Model.includes('applyDefaultValueOnce'),
+  'V2 default-value application is not guarded against FlowEngine remounts',
+);
+assert.ok(
+  !v2Model.includes('return () => model.detach()'),
+  'V2 filter is still detached by the React effect cleanup path',
+);
 
 assert.equal(read('client.js').trim(), "module.exports = require('./dist/client/index.js');");
 assert.equal(read('client-v2.js').trim(), "module.exports = require('./dist/client-v2/index.js');");
