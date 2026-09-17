@@ -7,8 +7,10 @@ import {
   getFieldInterface,
   getFieldTitle,
   isSupportedField,
+  isTextInterface,
   normalizeQuickFilterArray,
   normalizeQuickFilterValue,
+  normalizeTextFilterValue,
   operatorOptions,
   serializableOptions,
 } from '../shared/utils';
@@ -32,6 +34,7 @@ export const quickFilterSettings = new SchemaSettings({
         const selectedField = fields.find((item) => item.name === config.fieldName) || fields[0];
         const options = serializableOptions(selectedField);
         const fieldInterface = getFieldInterface(selectedField);
+        const textFilter = isTextInterface(fieldInterface || config.fieldInterface);
         const multiple = config.style === 'multiButton' || Boolean(config.multiple);
 
         return {
@@ -68,23 +71,40 @@ export const quickFilterSettings = new SchemaSettings({
                 'x-decorator': 'FormItem',
                 'x-component': 'Input.TextArea',
               },
-              style: {
-                title: t('Style'),
-                default: config.style || 'select',
-                enum: [
-                  { label: t('Select'), value: 'select' },
-                  { label: t('Button'), value: 'button' },
-                  { label: t('Multiple buttons'), value: 'multiButton' },
-                ],
-                'x-decorator': 'FormItem',
-                'x-component': 'Radio.Group',
-              },
-              multiple: {
-                title: t('Multiple selection'),
-                default: multiple,
+              fullRow: {
+                title: t('Exclusive row'),
+                default: Boolean(config.fullRow),
                 'x-decorator': 'FormItem',
                 'x-component': 'Checkbox',
               },
+              ...(textFilter
+                ? {
+                    placeholder: {
+                      title: t('Placeholder'),
+                      default: config.placeholder,
+                      'x-decorator': 'FormItem',
+                      'x-component': 'Input',
+                    },
+                  }
+                : {
+                    style: {
+                      title: t('Style'),
+                      default: config.style || 'select',
+                      enum: [
+                        { label: t('Select'), value: 'select' },
+                        { label: t('Button'), value: 'button' },
+                        { label: t('Multiple buttons'), value: 'multiButton' },
+                      ],
+                      'x-decorator': 'FormItem',
+                      'x-component': 'Radio.Group',
+                    },
+                    multiple: {
+                      title: t('Multiple selection'),
+                      default: multiple,
+                      'x-decorator': 'FormItem',
+                      'x-component': 'Checkbox',
+                    },
+                  }),
               operator: {
                 title: t('Operator'),
                 default: config.operator || defaultOperator(fieldInterface, multiple),
@@ -95,43 +115,68 @@ export const quickFilterSettings = new SchemaSettings({
                 'x-decorator': 'FormItem',
                 'x-component': 'Select',
               },
-              candidateValues: {
-                type: 'array',
-                title: t('Candidate values'),
-                default: normalizeQuickFilterArray(config.candidateValues),
-                enum: options,
-                'x-decorator': 'FormItem',
-                'x-component': 'Select',
-                'x-component-props': { mode: 'multiple', allowClear: true },
-              },
-              defaultValue: {
-                title: t('Default value'),
-                default: normalizeQuickFilterValue(config.defaultValue, multiple),
-                enum: options,
-                'x-decorator': 'FormItem',
-                'x-component': 'Select',
-                'x-component-props': { mode: multiple ? 'multiple' : undefined, allowClear: true },
-              },
+              ...(textFilter
+                ? {
+                    defaultValue: {
+                      title: t('Default value'),
+                      default: normalizeTextFilterValue(config.defaultValue),
+                      'x-decorator': 'FormItem',
+                      'x-component': 'Input',
+                    },
+                  }
+                : {
+                    candidateValues: {
+                      type: 'array',
+                      title: t('Candidate values'),
+                      default: normalizeQuickFilterArray(config.candidateValues),
+                      enum: options,
+                      'x-decorator': 'FormItem',
+                      'x-component': 'Select',
+                      'x-component-props': { mode: 'multiple', allowClear: true },
+                    },
+                    defaultValue: {
+                      title: t('Default value'),
+                      default: normalizeQuickFilterValue(config.defaultValue, multiple),
+                      enum: options,
+                      'x-decorator': 'FormItem',
+                      'x-component': 'Select',
+                      'x-component-props': { mode: multiple ? 'multiple' : undefined, allowClear: true },
+                    },
+                  }),
             },
           } as ISchema,
           onSubmit: (values: QuickFilterConfig) => {
             const nextField = fields.find((item) => item.name === values.fieldName) || selectedField;
             const nextInterface = getFieldInterface(nextField);
-            const nextMultiple = values.style === 'multiButton' || Boolean(values.multiple);
+            const nextTextFilter = isTextInterface(nextInterface);
+            const nextMultiple = nextTextFilter
+              ? false
+              : values.style === 'multiButton' || Boolean(values.multiple);
             const fieldChanged = values.fieldName !== config.fieldName;
             const nextProps: QuickFilterConfig = {
               ...config,
               ...values,
               fieldName: String(nextField?.name || values.fieldName),
+              fieldInterface: nextInterface,
               fieldTitle: fieldChanged ? getFieldTitle(nextField) : values.fieldTitle || getFieldTitle(nextField),
               showTitle: values.showTitle !== false,
+              fullRow: Boolean(values.fullRow),
+              placeholder: nextTextFilter ? values.placeholder : undefined,
+              style: nextTextFilter ? undefined : values.style || 'select',
               multiple: nextMultiple,
               operator: fieldChanged
                 ? defaultOperator(nextInterface, nextMultiple)
                 : values.operator || defaultOperator(nextInterface, nextMultiple),
-              candidateValues: fieldChanged ? undefined : normalizeQuickFilterArray(values.candidateValues),
-              defaultValue: fieldChanged ? undefined : normalizeQuickFilterValue(values.defaultValue, nextMultiple),
-              options: serializableOptions(nextField),
+              candidateValues:
+                nextTextFilter || fieldChanged
+                  ? undefined
+                  : normalizeQuickFilterArray(values.candidateValues),
+              defaultValue: fieldChanged
+                ? undefined
+                : nextTextFilter
+                  ? normalizeTextFilterValue(values.defaultValue)
+                  : normalizeQuickFilterValue(values.defaultValue, nextMultiple),
+              options: nextTextFilter ? undefined : serializableOptions(nextField),
             };
 
             fieldSchema.title = nextProps.fieldTitle;
