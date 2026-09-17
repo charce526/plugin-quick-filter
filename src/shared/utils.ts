@@ -4,7 +4,7 @@ import type {
   QuickFilterOption,
   QuickFilterPrimitive,
 } from './types';
-import { SUPPORTED_INTERFACES } from './types';
+import { SUPPORTED_INTERFACES, TEXT_INTERFACES } from './types';
 
 const ARRAY_INTERFACES = new Set(['checkboxGroup', 'multipleSelect']);
 const ARRAY_VALUE_OPERATORS = new Set([
@@ -34,6 +34,14 @@ export function isSupportedField(field?: CollectionFieldLike): boolean {
 
 export function isArrayInterface(fieldInterface?: string): boolean {
   return ARRAY_INTERFACES.has(String(fieldInterface || ''));
+}
+
+export function isTextInterface(fieldInterface?: string): boolean {
+  return TEXT_INTERFACES.includes(String(fieldInterface || '') as any);
+}
+
+export function isTextField(field?: CollectionFieldLike): boolean {
+  return isTextInterface(getFieldInterface(field));
 }
 
 export function hasFilterValue(value: unknown): boolean {
@@ -67,6 +75,11 @@ export function normalizeQuickFilterValue(
 ): QuickFilterPrimitive | QuickFilterPrimitive[] | undefined {
   const values = normalizeQuickFilterArray(value);
   return multiple ? values : values[0];
+}
+
+export function normalizeTextFilterValue(value: unknown): string | undefined {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return normalized || undefined;
 }
 
 export function normalizeQuickFilterValueByOperator(
@@ -138,11 +151,20 @@ export function restrictOptions(
 }
 
 export function defaultOperator(fieldInterface?: string, multiple = false): string {
+  if (isTextInterface(fieldInterface)) return '$includes';
   if (isArrayInterface(fieldInterface)) return multiple ? '$anyOf' : '$match';
   return multiple ? '$in' : '$eq';
 }
 
 export function operatorOptions(fieldInterface?: string) {
+  if (isTextInterface(fieldInterface)) {
+    return [
+      { value: '$includes', label: 'Contains' },
+      { value: '$notIncludes', label: 'Does not contain' },
+      { value: '$eq', label: 'Equals' },
+      { value: '$ne', label: 'Not equal' },
+    ];
+  }
   if (isArrayInterface(fieldInterface)) {
     return [
       { value: '$match', label: 'Matches' },
@@ -160,6 +182,9 @@ export function operatorOptions(fieldInterface?: string) {
 }
 
 export function effectiveOperator(config: QuickFilterConfig, fieldInterface?: string): string {
+  if (isTextInterface(fieldInterface || config.fieldInterface)) {
+    return config.operator || defaultOperator(fieldInterface || config.fieldInterface);
+  }
   const multiple = config.style === 'multiButton' || Boolean(config.multiple);
   const requested = config.operator || defaultOperator(fieldInterface, multiple);
   if (!multiple || isArrayInterface(fieldInterface)) return requested;
@@ -174,12 +199,16 @@ export function buildQuickFilter(
   value: unknown,
   fieldInterface?: string,
 ): Record<string, any> | undefined {
+  const resolvedInterface = fieldInterface || config.fieldInterface;
+  const textFilter = isTextInterface(resolvedInterface);
   const multiple = config.style === 'multiButton' || Boolean(config.multiple);
-  const operator = effectiveOperator(config, fieldInterface);
-  let normalizedValue: any = normalizeQuickFilterValue(value, multiple);
+  const operator = effectiveOperator(config, resolvedInterface);
+  let normalizedValue: any = textFilter
+    ? normalizeTextFilterValue(value)
+    : normalizeQuickFilterValue(value, multiple);
   if (!config.fieldName || !hasFilterValue(normalizedValue)) return undefined;
 
-  const candidateValues = normalizeQuickFilterArray(config.candidateValues);
+  const candidateValues = textFilter ? [] : normalizeQuickFilterArray(config.candidateValues);
   if (candidateValues.length) {
     const allowed = (candidate: unknown) =>
       candidateValues.some(
@@ -214,13 +243,16 @@ export function serializableOptions(field?: CollectionFieldLike): QuickFilterOpt
 
 export function createDefaultConfig(field: CollectionFieldLike): QuickFilterConfig {
   const fieldInterface = getFieldInterface(field);
+  const textFilter = isTextInterface(fieldInterface);
   return {
     fieldName: String(field.name || ''),
+    fieldInterface,
     fieldTitle: getFieldTitle(field),
     showTitle: true,
-    style: 'select',
+    fullRow: false,
+    style: textFilter ? undefined : 'select',
     multiple: false,
     operator: defaultOperator(fieldInterface, false),
-    options: serializableOptions(field),
+    options: textFilter ? undefined : serializableOptions(field),
   };
 }
