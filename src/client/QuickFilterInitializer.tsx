@@ -12,7 +12,7 @@ import {
 } from '@nocobase/client';
 import React, { useContext } from 'react';
 import type { CollectionFieldLike } from '../shared/types';
-import { createDefaultConfig, getFieldTitle, isSupportedField } from '../shared/utils';
+import { createDefaultConfig, getFieldTitle, isSupportedField, isTextField } from '../shared/utils';
 import { useQuickFilterTranslation } from './locale';
 
 export function QuickFilterInitializer() {
@@ -27,6 +27,13 @@ export function QuickFilterInitializer() {
     label: getFieldTitle(field),
     value: field.name,
   }));
+  const textFieldNames = fields.filter(isTextField).map((field) => field.name);
+  const hideForTextField = () => ({
+    dependencies: ['fieldName'],
+    when: `{{${JSON.stringify(textFieldNames)}.includes($deps[0])}}`,
+    fulfill: { state: { hidden: true } },
+    otherwise: { state: { hidden: false } },
+  });
 
   const handleClick = async () => {
     if (!fields.length) return;
@@ -56,6 +63,12 @@ export function QuickFilterInitializer() {
                     'x-decorator': 'FormItem',
                     'x-component': 'Checkbox',
                   },
+                  fullRow: {
+                    title: t('Exclusive row'),
+                    default: false,
+                    'x-decorator': 'FormItem',
+                    'x-component': 'Checkbox',
+                  },
                   style: {
                     title: t('Style'),
                     default: 'select',
@@ -66,12 +79,14 @@ export function QuickFilterInitializer() {
                     ],
                     'x-decorator': 'FormItem',
                     'x-component': 'Radio.Group',
+                    'x-reactions': hideForTextField(),
                   },
                   multiple: {
                     title: t('Multiple selection'),
                     default: false,
                     'x-decorator': 'FormItem',
                     'x-component': 'Checkbox',
+                    'x-reactions': hideForTextField(),
                   },
                 },
               }}
@@ -84,6 +99,7 @@ export function QuickFilterInitializer() {
       initialValues: {
         fieldName: fields[0]?.name,
         showTitle: true,
+        fullRow: false,
         style: 'select',
         multiple: false,
       },
@@ -91,11 +107,13 @@ export function QuickFilterInitializer() {
 
     const field = fields.find((item) => item.name === values.fieldName);
     if (!field) return;
+    const textFilter = isTextField(field);
     const config = {
       ...createDefaultConfig(field),
       showTitle: values.showTitle !== false,
-      style: values.style || 'select',
-      multiple: values.style === 'multiButton' || Boolean(values.multiple),
+      fullRow: Boolean(values.fullRow),
+      style: textFilter ? undefined : values.style || 'select',
+      multiple: textFilter ? false : values.style === 'multiButton' || Boolean(values.multiple),
     };
 
     insert({
