@@ -1,6 +1,6 @@
 # NocoBase Quick Filter Plugin
 
-Configurable instant filters for NocoBase collection action bars, with separate adapters for V1 Schema pages and V2 FlowEngine pages.
+Configurable option filters and submitted text search for NocoBase collection action bars, with separate adapters for V1 Schema pages and V2 FlowEngine pages.
 
 ## Compatibility
 
@@ -15,8 +15,11 @@ The repository ships both source and the NocoBase build output (`dist`), so the 
 ## Highlights
 
 - Select, single-button and multi-button presentations.
+- Text inputs submit only from the Search button or Enter, not on each keystroke.
 - Configurable title, tooltip, default value, multiple selection, operator and candidate values.
-- Supported interfaces: `select`, `dictDataSingle`, `radioGroup`, `checkboxGroup`, `multipleSelect`, and `approvalStatus`.
+- Per-filter exclusive-row setting; inline filters share the left group while right-side custom actions remain pinned.
+- Option interfaces: `select`, `dictDataSingle`, `radioGroup`, `checkboxGroup`, `multipleSelect`, and `approvalStatus`.
+- Text interfaces: `input`, `textarea`, `email`, `phone`, and `url`.
 - Multiple quick filters compose with each other, the regular filter action, and the block's base data scope.
 - V1 registers the 2.2.x table action initializer (current name with a legacy fallback).
 - V2 uses a dedicated action model and resource filter groups.
