@@ -7,6 +7,8 @@ import {
   getFieldInterface,
   getFieldTitle,
   isSupportedField,
+  normalizeQuickFilterArray,
+  normalizeQuickFilterValue,
   operatorOptions,
   serializableOptions,
 } from '../shared/utils';
@@ -96,7 +98,7 @@ export const quickFilterSettings = new SchemaSettings({
               candidateValues: {
                 type: 'array',
                 title: t('Candidate values'),
-                default: config.candidateValues,
+                default: normalizeQuickFilterArray(config.candidateValues),
                 enum: options,
                 'x-decorator': 'FormItem',
                 'x-component': 'Select',
@@ -104,7 +106,7 @@ export const quickFilterSettings = new SchemaSettings({
               },
               defaultValue: {
                 title: t('Default value'),
-                default: config.defaultValue,
+                default: normalizeQuickFilterValue(config.defaultValue, multiple),
                 enum: options,
                 'x-decorator': 'FormItem',
                 'x-component': 'Select',
@@ -127,8 +129,8 @@ export const quickFilterSettings = new SchemaSettings({
               operator: fieldChanged
                 ? defaultOperator(nextInterface, nextMultiple)
                 : values.operator || defaultOperator(nextInterface, nextMultiple),
-              candidateValues: fieldChanged ? undefined : values.candidateValues,
-              defaultValue: fieldChanged ? undefined : values.defaultValue,
+              candidateValues: fieldChanged ? undefined : normalizeQuickFilterArray(values.candidateValues),
+              defaultValue: fieldChanged ? undefined : normalizeQuickFilterValue(values.defaultValue, nextMultiple),
               options: serializableOptions(nextField),
             };
 

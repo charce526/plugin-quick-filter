@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Normalized empty, scalar and array values before rendering multi-select controls and building filters.
+- Rendered every quick-filter object on its own action-bar row in both V1 and V2 pages.
 - Enlarged select and button controls to the standard action-bar size and increased spacing.
 - Registered the V2 action model from the legacy client entry for V2 pages hosted by the NocoBase 2.2.x hybrid shell.
 - Preserved the V1 page schema context inside the quick-filter creation dialog so field and display-style selections work normally.

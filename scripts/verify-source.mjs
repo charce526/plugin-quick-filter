@@ -129,6 +129,18 @@ assert.ok(control.includes('<Radio.Group'), 'Single-button display mode is missi
 assert.ok(control.includes('<Checkbox.Group'), 'Multi-button display mode is missing');
 assert.ok(!control.includes('size="small"'), 'Quick-filter controls still use the undersized variant');
 assert.ok(control.includes('minWidth: 180'), 'Quick-filter select width was not enlarged');
+assert.ok(
+  control.includes('normalizeQuickFilterValue(value, multiple)'),
+  'Quick-filter control does not normalize scalar, empty and multiple values',
+);
+assert.ok(
+  control.includes("closest('.ant-space-item')"),
+  'Quick-filter controls are not promoted to independent action-bar rows',
+);
+
+const utils = read('src/shared/utils.ts');
+assert.ok(utils.includes('normalizeQuickFilterArray'), 'Quick-filter array normalization is missing');
+assert.ok(utils.includes('normalizeQuickFilterValue'), 'Quick-filter value normalization is missing');
 
 const v2Model = read('src/client-v2/QuickFilterActionModel.tsx');
 for (const api of ['addFilterGroup', 'removeFilterGroup', 'setFilterActive', 'setPage']) {

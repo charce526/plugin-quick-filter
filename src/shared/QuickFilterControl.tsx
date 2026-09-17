@@ -1,12 +1,12 @@
 import { Button, Checkbox, Radio, Select, Space, Tooltip, Typography } from 'antd';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CollectionFieldLike,
   QuickFilterOption,
   QuickFilterPrimitive,
   QuickFilterStyle,
 } from './types';
-import { resolveFieldOptions, restrictOptions } from './utils';
+import { normalizeQuickFilterValue, resolveFieldOptions, restrictOptions } from './utils';
 
 const CLEAR_VALUE = '__xiezuo_quick_filter_clear__';
 
@@ -65,6 +65,8 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
   } = props;
 
   const multiple = styleType === 'multiButton' || Boolean(props.multiple);
+  const normalizedValue = normalizeQuickFilterValue(value, multiple);
+  const rowRef = useRef<HTMLDivElement>(null);
   const resolved = useResolvedOptions(field, fallbackOptions);
   const options = useMemo(
     () =>
@@ -75,6 +77,23 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
     [resolved, candidateValues, compileLabel],
   );
   const isDisabled = disabled || options.length === 0;
+
+  useEffect(() => {
+    const rowItem = rowRef.current?.closest('.ant-space-item') as HTMLElement | null;
+    if (!rowItem) return;
+
+    const previousFlexBasis = rowItem.style.flexBasis;
+    const previousWidth = rowItem.style.width;
+    rowItem.style.flexBasis = '100%';
+    rowItem.style.width = '100%';
+    rowItem.classList.add('nb-quick-filter-row-item');
+
+    return () => {
+      rowItem.style.flexBasis = previousFlexBasis;
+      rowItem.style.width = previousWidth;
+      rowItem.classList.remove('nb-quick-filter-row-item');
+    };
+  }, []);
 
   let control: React.ReactNode;
   if (styleType === 'select') {
@@ -87,12 +106,12 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
         placeholder={options.length ? allText : noOptionsText}
         size="middle"
         style={{ minWidth: 180 }}
-        value={value as any}
-        onChange={(next) => onChange(next as any)}
+        value={normalizedValue as any}
+        onChange={(next) => onChange(normalizeQuickFilterValue(next, multiple))}
       />
     );
   } else if (multiple) {
-    const selected = Array.isArray(value) ? value : value === undefined ? [] : [value];
+    const selected = normalizedValue as QuickFilterPrimitive[];
     control = (
       <Space size={8} wrap>
         <Button size="middle" type={selected.length ? 'default' : 'primary'} onClick={() => onChange(undefined)}>
@@ -114,7 +133,7 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
         optionType="button"
         buttonStyle="solid"
         size="middle"
-        value={value === undefined || value === null || value === '' ? CLEAR_VALUE : value}
+        value={normalizedValue === undefined ? CLEAR_VALUE : normalizedValue}
         onChange={(event) => onChange(event.target.value === CLEAR_VALUE ? undefined : event.target.value)}
       >
         <Radio.Button value={CLEAR_VALUE}>{allText}</Radio.Button>
@@ -128,10 +147,12 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
   }
 
   const content = (
-    <Space size={10} align="center" wrap>
-      {showTitle && title ? <Typography.Text>{title}</Typography.Text> : null}
-      {control}
-    </Space>
+    <div ref={rowRef} className="nb-quick-filter-row" style={{ display: 'flex', width: '100%' }}>
+      <Space size={10} align="center" wrap>
+        {showTitle && title ? <Typography.Text>{title}</Typography.Text> : null}
+        {control}
+      </Space>
+    </div>
   );
 
   return tooltip ? <Tooltip title={tooltip}>{content}</Tooltip> : content;

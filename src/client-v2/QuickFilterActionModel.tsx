@@ -16,6 +16,8 @@ import {
   getFieldTitle,
   hasFilterValue,
   isSupportedField,
+  normalizeQuickFilterArray,
+  normalizeQuickFilterValue,
   operatorOptions,
   serializableOptions,
 } from '../shared/utils';
@@ -128,14 +130,17 @@ export class QuickFilterActionModel extends ActionModel {
     if (this.defaultValueApplied) return;
     this.defaultValueApplied = true;
 
-    const defaultValue = this.props.defaultValue;
+    const multiple = this.props.style === 'multiButton' || Boolean(this.props.multiple);
+    const defaultValue = normalizeQuickFilterValue(this.props.defaultValue, multiple);
     this.currentValue = defaultValue;
     this.hasCurrentValue = true;
     if (hasFilterValue(defaultValue)) this.applyValue(defaultValue);
   }
 
   applyValue(value: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined) {
-    this.currentValue = value;
+    const multiple = this.props.style === 'multiButton' || Boolean(this.props.multiple);
+    const normalizedValue = normalizeQuickFilterValue(value, multiple);
+    this.currentValue = normalizedValue;
     this.hasCurrentValue = true;
 
     const blockModel = this.context.blockModel as CollectionBlockModel;
@@ -143,8 +148,8 @@ export class QuickFilterActionModel extends ActionModel {
     if (!blockModel || !resource) return;
 
     const field = getField(this.context, this.props.fieldName);
-    const filter = buildQuickFilter(this.props, value, getFieldInterface(field));
-    const active = hasFilterValue(value) && Boolean(filter);
+    const filter = buildQuickFilter(this.props, normalizedValue, getFieldInterface(field));
+    const active = hasFilterValue(normalizedValue) && Boolean(filter);
 
     blockModel.setFilterActive(this.uid, active);
     if (filter) {
@@ -336,17 +341,20 @@ QuickFilterActionModel.registerFlow({
         const multiple = ctx.model.props.style === 'multiButton' || Boolean(ctx.model.props.multiple);
         return {
           operator: ctx.model.props.operator || defaultOperator(getFieldInterface(field), multiple),
-          candidateValues: ctx.model.props.candidateValues,
-          defaultValue: ctx.model.props.defaultValue,
+          candidateValues: normalizeQuickFilterArray(ctx.model.props.candidateValues),
+          defaultValue: normalizeQuickFilterValue(ctx.model.props.defaultValue, multiple),
         };
       },
       handler(ctx, params) {
+        const multiple = ctx.model.props.style === 'multiButton' || Boolean(ctx.model.props.multiple);
+        const candidateValues = normalizeQuickFilterArray(params.candidateValues);
+        const defaultValue = normalizeQuickFilterValue(params.defaultValue, multiple);
         ctx.model.setProps({
           operator: params.operator,
-          candidateValues: params.candidateValues,
-          defaultValue: params.defaultValue,
+          candidateValues,
+          defaultValue,
         });
-        ctx.model.applyValue(params.defaultValue);
+        ctx.model.applyValue(defaultValue);
       },
     },
   },

@@ -48,6 +48,19 @@ function primitive(value: unknown): value is QuickFilterPrimitive {
   return ['string', 'number', 'boolean'].includes(typeof value);
 }
 
+export function normalizeQuickFilterArray(value: unknown): QuickFilterPrimitive[] {
+  const values = Array.isArray(value) ? value : primitive(value) ? [value] : [];
+  return values.filter(primitive);
+}
+
+export function normalizeQuickFilterValue(
+  value: unknown,
+  multiple: boolean,
+): QuickFilterPrimitive | QuickFilterPrimitive[] | undefined {
+  const values = normalizeQuickFilterArray(value);
+  return multiple ? values : values[0];
+}
+
 export function normalizeOptions(input: any): QuickFilterOption[] {
   const source = Array.isArray(input) ? input : [];
   const result: QuickFilterOption[] = [];
@@ -100,9 +113,10 @@ export function restrictOptions(
   options: QuickFilterOption[],
   candidateValues?: QuickFilterPrimitive[],
 ): QuickFilterOption[] {
-  if (!candidateValues?.length) return options;
+  const candidates = normalizeQuickFilterArray(candidateValues);
+  if (!candidates.length) return options;
   return options.filter((option) =>
-    candidateValues.some(
+    candidates.some(
       (candidate) => Object.is(candidate, option.value) || String(candidate) === String(option.value),
     ),
   );
@@ -150,13 +164,14 @@ export function buildQuickFilter(
   value: unknown,
   fieldInterface?: string,
 ): Record<string, any> | undefined {
-  if (!config.fieldName || !hasFilterValue(value)) return undefined;
   const multiple = config.style === 'multiButton' || Boolean(config.multiple);
-  let normalizedValue: any = multiple && !Array.isArray(value) ? [value] : value;
+  let normalizedValue: any = normalizeQuickFilterValue(value, multiple);
+  if (!config.fieldName || !hasFilterValue(normalizedValue)) return undefined;
 
-  if (config.candidateValues?.length) {
+  const candidateValues = normalizeQuickFilterArray(config.candidateValues);
+  if (candidateValues.length) {
     const allowed = (candidate: unknown) =>
-      config.candidateValues?.some(
+      candidateValues.some(
         (item) => Object.is(item, candidate) || String(item) === String(candidate),
       );
     normalizedValue = Array.isArray(normalizedValue)

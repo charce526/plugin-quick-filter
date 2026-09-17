@@ -93,7 +93,7 @@ export function QuickFilter() {
     <SortableItem
       component="div"
       className="nb-quick-filter"
-      style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}
+      style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}
     >
       {renderToolbar({ draggable: true })}
       <QuickFilterControl
