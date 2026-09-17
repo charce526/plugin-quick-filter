@@ -135,7 +135,11 @@ assert.ok(
 );
 assert.ok(
   control.includes("closest('.ant-space-item')"),
-  'Quick-filter controls are not promoted to independent action-bar rows',
+  'Quick-filter controls do not integrate with the action-bar layout',
+);
+assert.ok(
+  control.includes("classList.toggle('nb-quick-filter-row-item', fullRow)"),
+  'Exclusive-row layout is not controlled per quick-filter object',
 );
 assert.ok(
   control.includes('nb-quick-filter-left-group') && control.includes('flex: 1 1 0 !important'),
@@ -144,6 +148,15 @@ assert.ok(
 assert.ok(
   control.includes('nb-quick-filter-right-group') && control.includes('flex: 0 0 auto !important'),
   'The right action group can still shrink or be pushed onto another row',
+);
+assert.ok(control.includes('<Input.Search'), 'Submitted text-search control is missing');
+assert.ok(
+  control.includes('onSearch={(nextValue) =>'),
+  'Text search is not submitted through Search/Enter',
+);
+assert.ok(
+  !control.includes('onChange={(event) => onSearch('),
+  'Text search still refreshes on every keystroke',
 );
 
 const utils = read('src/shared/utils.ts');
@@ -160,6 +173,10 @@ assert.ok(
   utils.includes('if (!multiple || isArrayInterface(fieldInterface)) return requested;'),
   'Array-field operators are still being rewritten when the control allows multiple values',
 );
+assert.ok(utils.includes('normalizeTextFilterValue'), 'Text-filter value normalization is missing');
+for (const operator of ['$includes', '$notIncludes']) {
+  assert.ok(utils.includes(`'${operator}'`), `Text-filter operator is missing: ${operator}`);
+}
 
 const v2Model = read('src/client-v2/QuickFilterActionModel.tsx');
 for (const api of ['addFilterGroup', 'removeFilterGroup', 'setFilterActive', 'setPage']) {
@@ -190,6 +207,11 @@ for (const name of [
   'checkboxGroup',
   'multipleSelect',
   'approvalStatus',
+  'input',
+  'textarea',
+  'email',
+  'phone',
+  'url',
 ]) {
   assert.ok(types.includes("'" + name + "'"), 'Supported field interface missing: ' + name);
 }
