@@ -44,6 +44,36 @@ var import_antd = require("antd");
 var import_react = __toESM(require("react"));
 var import_utils = require("./utils");
 const CLEAR_VALUE = "__xiezuo_quick_filter_clear__";
+const QUICK_FILTER_ROW_STYLES = `
+  .nb-quick-filter-action-row {
+    min-width: 0;
+  }
+
+  .nb-quick-filter-action-row > .nb-quick-filter-left-group {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  .nb-quick-filter-action-row > .nb-quick-filter-right-group {
+    flex: 0 0 auto !important;
+    margin-left: auto !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .nb-quick-filter-left-group > .nb-quick-filter-row-item {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  .nb-quick-filter-row,
+  .nb-quick-filter-row > .ant-space {
+    min-width: 0;
+    max-width: 100%;
+  }
+`;
 function useResolvedOptions(field, fallbackOptions = []) {
   const [options, setOptions] = (0, import_react.useState)(fallbackOptions);
   (0, import_react.useEffect)(() => {
@@ -90,15 +120,24 @@ function QuickFilterControl(props) {
     var _a;
     const rowItem = (_a = rowRef.current) == null ? void 0 : _a.closest(".ant-space-item");
     if (!rowItem) return;
-    const previousFlexBasis = rowItem.style.flexBasis;
-    const previousWidth = rowItem.style.width;
-    rowItem.style.flexBasis = "100%";
-    rowItem.style.width = "100%";
+    const leftGroup = rowItem.parentElement;
+    const actionRow = leftGroup == null ? void 0 : leftGroup.parentElement;
+    const rightGroup = Array.from((actionRow == null ? void 0 : actionRow.children) || []).find(
+      (child) => child !== leftGroup && child.classList.contains("ant-space")
+    );
     rowItem.classList.add("nb-quick-filter-row-item");
+    leftGroup == null ? void 0 : leftGroup.classList.add("nb-quick-filter-left-group");
+    if (rightGroup) {
+      actionRow == null ? void 0 : actionRow.classList.add("nb-quick-filter-action-row");
+      rightGroup.classList.add("nb-quick-filter-right-group");
+    }
     return () => {
-      rowItem.style.flexBasis = previousFlexBasis;
-      rowItem.style.width = previousWidth;
       rowItem.classList.remove("nb-quick-filter-row-item");
+      if (!(leftGroup == null ? void 0 : leftGroup.querySelector(".nb-quick-filter-row-item"))) {
+        leftGroup == null ? void 0 : leftGroup.classList.remove("nb-quick-filter-left-group");
+        actionRow == null ? void 0 : actionRow.classList.remove("nb-quick-filter-action-row");
+        rightGroup == null ? void 0 : rightGroup.classList.remove("nb-quick-filter-right-group");
+      }
     };
   }, []);
   let control;
@@ -144,7 +183,7 @@ function QuickFilterControl(props) {
       options.map((option) => /* @__PURE__ */ import_react.default.createElement(import_antd.Radio.Button, { key: String(option.value), value: option.value, disabled: option.disabled }, option.label))
     );
   }
-  const content = /* @__PURE__ */ import_react.default.createElement("div", { ref: rowRef, className: "nb-quick-filter-row", style: { display: "flex", width: "100%" } }, /* @__PURE__ */ import_react.default.createElement(import_antd.Space, { size: 10, align: "center", wrap: true }, showTitle && title ? /* @__PURE__ */ import_react.default.createElement(import_antd.Typography.Text, null, title) : null, control));
+  const content = /* @__PURE__ */ import_react.default.createElement("div", { ref: rowRef, className: "nb-quick-filter-row", style: { display: "flex", width: "100%" } }, /* @__PURE__ */ import_react.default.createElement("style", null, QUICK_FILTER_ROW_STYLES), /* @__PURE__ */ import_react.default.createElement(import_antd.Space, { size: 10, align: "center", wrap: true }, showTitle && title ? /* @__PURE__ */ import_react.default.createElement(import_antd.Typography.Text, null, title) : null, control));
   return tooltip ? /* @__PURE__ */ import_react.default.createElement(import_antd.Tooltip, { title: tooltip }, content) : content;
 }
 // Annotate the CommonJS export names for ESM import in node:

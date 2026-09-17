@@ -28,7 +28,7 @@ for (const path of required) {
 
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 assert.equal(pkg.name, '@xiezuo/plugin-quick-filter');
-assert.equal(pkg.version, '1.1.1');
+assert.equal(pkg.version, '1.1.2');
 assert.equal(pkg.author?.name, '偕作BIM');
 assert.equal(pkg.license, 'AGPL-3.0-only');
 for (const dependency of [

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.2 - 2026-09-17
 
 - Kept the right-side custom action group fixed on the right while quick filters stack and wrap only inside the remaining left-side space.
 
