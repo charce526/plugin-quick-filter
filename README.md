@@ -1,6 +1,6 @@
 # NocoBase 快捷筛选插件
 
-为 NocoBase 数据表格操作栏提供可配置、选择后立即生效的快捷筛选，同时兼容 V1 Schema 页面与 V2 FlowEngine 页面。
+为 NocoBase 数据表格操作栏提供可配置的选项快捷筛选与文本搜索，同时兼容 V1 Schema 页面与 V2 FlowEngine 页面。
 
 ## 兼容范围
 
@@ -17,8 +17,11 @@
 ## 功能
 
 - 支持下拉、单选按钮、多选按钮三种样式。
+- 文本字段显示搜索框，只在点击“搜索”或按 Enter 时执行筛选，不会随输入逐字请求。
 - 支持显示字段标题、提示信息、默认值、多选、运算符和候选值范围。
-- 支持 `select`、`dictDataSingle`、`radioGroup`、`checkboxGroup`、`multipleSelect`、`approvalStatus` 字段接口。
+- 每个快捷筛选可单独配置“独占一行”；未勾选时与其他快捷筛选横向排列，右侧自定义操作保持固定。
+- 选项字段支持 `select`、`dictDataSingle`、`radioGroup`、`checkboxGroup`、`multipleSelect`、`approvalStatus`。
+- 文本搜索支持 `input`、`textarea`、`email`、`phone`、`url` 字段接口。
 - 多个快捷筛选可同时使用，并与普通筛选及区块数据范围合并。
 - 选择“全部”或清空选择时，只移除当前快捷筛选，不影响其他筛选条件。
 - V2 手动加载模式下遵循 NocoBase 原生筛选动作的数据清空行为。
@@ -41,7 +44,7 @@ git clone https://github.com/charce526/plugin-quick-filter.git \
 1. 开启 UI 配置模式。
 2. 在表格操作栏点击“配置操作”。
 3. 选择“快捷筛选”，再选择目标字段与初始样式。
-4. 通过组件右上角设置菜单继续配置标题、默认值、运算符和候选值。
+4. 通过组件右上角设置菜单继续配置标题、独占一行、默认值、运算符和候选值；文本字段还可配置占位文字。
 
 插件注册 V1 表格操作初始化器：优先现行名 `TableActionInitializers`，回退旧名 `table:configureActions`（二者在 2.2.x 内互为同步别名），避免重复注册相同的菜单项。
 
@@ -50,7 +53,7 @@ git clone https://github.com/charce526/plugin-quick-filter.git \
 1. 开启 UI 配置模式。
 2. 在表格操作区添加操作。
 3. 展开“快捷筛选”，直接选择目标字段。
-4. 在快捷筛选设置中调整基本设置、显示设置及值与运算符。
+4. 在快捷筛选设置中调整基本设置、独占一行、显示设置及值与运算符。
 
 V2 使用独立的 `QuickFilterActionModel`，通过区块资源的筛选组 API 与原生筛选共同工作。
 
