@@ -26,10 +26,12 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var types_exports = {};
 __export(types_exports, {
-  SUPPORTED_INTERFACES: () => SUPPORTED_INTERFACES
+  OPTION_INTERFACES: () => OPTION_INTERFACES,
+  SUPPORTED_INTERFACES: () => SUPPORTED_INTERFACES,
+  TEXT_INTERFACES: () => TEXT_INTERFACES
 });
 module.exports = __toCommonJS(types_exports);
-const SUPPORTED_INTERFACES = [
+const OPTION_INTERFACES = [
   "select",
   "dictDataSingle",
   "radioGroup",
@@ -37,7 +39,11 @@ const SUPPORTED_INTERFACES = [
   "multipleSelect",
   "approvalStatus"
 ];
+const TEXT_INTERFACES = ["input", "textarea", "email", "phone", "url"];
+const SUPPORTED_INTERFACES = [...OPTION_INTERFACES, ...TEXT_INTERFACES];
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  SUPPORTED_INTERFACES
+  OPTION_INTERFACES,
+  SUPPORTED_INTERFACES,
+  TEXT_INTERFACES
 });

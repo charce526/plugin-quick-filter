@@ -37,6 +37,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var QuickFilterControl_exports = {};
 __export(QuickFilterControl_exports, {
   QuickFilterControl: () => QuickFilterControl,
+  QuickTextFilterControl: () => QuickTextFilterControl,
   useResolvedOptions: () => useResolvedOptions
 });
 module.exports = __toCommonJS(QuickFilterControl_exports);
@@ -88,6 +89,46 @@ function useResolvedOptions(field, fallbackOptions = []) {
   }, [field, JSON.stringify(fallbackOptions)]);
   return options;
 }
+function QuickFilterContainer(props) {
+  const { title, showTitle = true, tooltip, fullRow = false, children } = props;
+  const rowRef = (0, import_react.useRef)(null);
+  (0, import_react.useEffect)(() => {
+    var _a;
+    const rowItem = (_a = rowRef.current) == null ? void 0 : _a.closest(".ant-space-item");
+    if (!rowItem) return;
+    const leftGroup = rowItem.parentElement;
+    const actionRow = leftGroup == null ? void 0 : leftGroup.parentElement;
+    const rightGroup = Array.from((actionRow == null ? void 0 : actionRow.children) || []).find(
+      (child) => child !== leftGroup && child.classList.contains("ant-space")
+    );
+    rowItem.classList.add("nb-quick-filter-layout-item");
+    rowItem.classList.toggle("nb-quick-filter-row-item", fullRow);
+    leftGroup == null ? void 0 : leftGroup.classList.add("nb-quick-filter-left-group");
+    if (rightGroup) {
+      actionRow == null ? void 0 : actionRow.classList.add("nb-quick-filter-action-row");
+      rightGroup.classList.add("nb-quick-filter-right-group");
+    }
+    return () => {
+      rowItem.classList.remove("nb-quick-filter-layout-item", "nb-quick-filter-row-item");
+      if (!(leftGroup == null ? void 0 : leftGroup.querySelector(".nb-quick-filter-layout-item"))) {
+        leftGroup == null ? void 0 : leftGroup.classList.remove("nb-quick-filter-left-group");
+        actionRow == null ? void 0 : actionRow.classList.remove("nb-quick-filter-action-row");
+        rightGroup == null ? void 0 : rightGroup.classList.remove("nb-quick-filter-right-group");
+      }
+    };
+  }, [fullRow]);
+  const content = /* @__PURE__ */ import_react.default.createElement(
+    "div",
+    {
+      ref: rowRef,
+      className: "nb-quick-filter-row",
+      style: { display: "flex", width: fullRow ? "100%" : void 0, maxWidth: "100%" }
+    },
+    /* @__PURE__ */ import_react.default.createElement("style", null, QUICK_FILTER_ROW_STYLES),
+    /* @__PURE__ */ import_react.default.createElement(import_antd.Space, { size: 10, align: "center", wrap: true }, showTitle && title ? /* @__PURE__ */ import_react.default.createElement(import_antd.Typography.Text, null, title) : null, children)
+  );
+  return tooltip ? /* @__PURE__ */ import_react.default.createElement(import_antd.Tooltip, { title: tooltip }, content) : content;
+}
 function QuickFilterControl(props) {
   const {
     title,
@@ -99,6 +140,7 @@ function QuickFilterControl(props) {
     fallbackOptions = [],
     candidateValues,
     disabled,
+    fullRow,
     allText,
     noOptionsText,
     onChange,
@@ -106,7 +148,6 @@ function QuickFilterControl(props) {
   } = props;
   const multiple = styleType === "multiButton" || Boolean(props.multiple);
   const normalizedValue = (0, import_utils.normalizeQuickFilterValue)(value, multiple);
-  const rowRef = (0, import_react.useRef)(null);
   const resolved = useResolvedOptions(field, fallbackOptions);
   const options = (0, import_react.useMemo)(
     () => (0, import_utils.restrictOptions)(resolved, candidateValues).map((option) => ({
@@ -116,30 +157,6 @@ function QuickFilterControl(props) {
     [resolved, candidateValues, compileLabel]
   );
   const isDisabled = disabled || options.length === 0;
-  (0, import_react.useEffect)(() => {
-    var _a;
-    const rowItem = (_a = rowRef.current) == null ? void 0 : _a.closest(".ant-space-item");
-    if (!rowItem) return;
-    const leftGroup = rowItem.parentElement;
-    const actionRow = leftGroup == null ? void 0 : leftGroup.parentElement;
-    const rightGroup = Array.from((actionRow == null ? void 0 : actionRow.children) || []).find(
-      (child) => child !== leftGroup && child.classList.contains("ant-space")
-    );
-    rowItem.classList.add("nb-quick-filter-row-item");
-    leftGroup == null ? void 0 : leftGroup.classList.add("nb-quick-filter-left-group");
-    if (rightGroup) {
-      actionRow == null ? void 0 : actionRow.classList.add("nb-quick-filter-action-row");
-      rightGroup.classList.add("nb-quick-filter-right-group");
-    }
-    return () => {
-      rowItem.classList.remove("nb-quick-filter-row-item");
-      if (!(leftGroup == null ? void 0 : leftGroup.querySelector(".nb-quick-filter-row-item"))) {
-        leftGroup == null ? void 0 : leftGroup.classList.remove("nb-quick-filter-left-group");
-        actionRow == null ? void 0 : actionRow.classList.remove("nb-quick-filter-action-row");
-        rightGroup == null ? void 0 : rightGroup.classList.remove("nb-quick-filter-right-group");
-      }
-    };
-  }, []);
   let control;
   if (styleType === "select") {
     control = /* @__PURE__ */ import_react.default.createElement(
@@ -183,11 +200,43 @@ function QuickFilterControl(props) {
       options.map((option) => /* @__PURE__ */ import_react.default.createElement(import_antd.Radio.Button, { key: String(option.value), value: option.value, disabled: option.disabled }, option.label))
     );
   }
-  const content = /* @__PURE__ */ import_react.default.createElement("div", { ref: rowRef, className: "nb-quick-filter-row", style: { display: "flex", width: "100%" } }, /* @__PURE__ */ import_react.default.createElement("style", null, QUICK_FILTER_ROW_STYLES), /* @__PURE__ */ import_react.default.createElement(import_antd.Space, { size: 10, align: "center", wrap: true }, showTitle && title ? /* @__PURE__ */ import_react.default.createElement(import_antd.Typography.Text, null, title) : null, control));
-  return tooltip ? /* @__PURE__ */ import_react.default.createElement(import_antd.Tooltip, { title: tooltip }, content) : content;
+  return /* @__PURE__ */ import_react.default.createElement(QuickFilterContainer, { title, showTitle, tooltip, fullRow }, control);
+}
+function QuickTextFilterControl(props) {
+  const {
+    title,
+    showTitle = true,
+    tooltip,
+    value,
+    placeholder,
+    searchText,
+    fullRow,
+    disabled,
+    onSearch
+  } = props;
+  const appliedValue = typeof value === "string" ? value : "";
+  const [draftValue, setDraftValue] = (0, import_react.useState)(appliedValue);
+  (0, import_react.useEffect)(() => {
+    setDraftValue(appliedValue);
+  }, [appliedValue]);
+  return /* @__PURE__ */ import_react.default.createElement(QuickFilterContainer, { title, showTitle, tooltip, fullRow }, /* @__PURE__ */ import_react.default.createElement(
+    import_antd.Input.Search,
+    {
+      allowClear: true,
+      disabled,
+      enterButton: searchText,
+      placeholder,
+      size: "middle",
+      style: { width: 280, maxWidth: "100%" },
+      value: draftValue,
+      onChange: (event) => setDraftValue(event.target.value),
+      onSearch: (nextValue) => onSearch(nextValue.trim() || void 0)
+    }
+  ));
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   QuickFilterControl,
+  QuickTextFilterControl,
   useResolvedOptions
 });

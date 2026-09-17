@@ -35,10 +35,13 @@ __export(utils_exports, {
   hasFilterValue: () => hasFilterValue,
   isArrayInterface: () => isArrayInterface,
   isSupportedField: () => isSupportedField,
+  isTextField: () => isTextField,
+  isTextInterface: () => isTextInterface,
   normalizeOptions: () => normalizeOptions,
   normalizeQuickFilterArray: () => normalizeQuickFilterArray,
   normalizeQuickFilterValue: () => normalizeQuickFilterValue,
   normalizeQuickFilterValueByOperator: () => normalizeQuickFilterValueByOperator,
+  normalizeTextFilterValue: () => normalizeTextFilterValue,
   operatorOptions: () => operatorOptions,
   resolveFieldOptions: () => resolveFieldOptions,
   resolveFieldOptionsSync: () => resolveFieldOptionsSync,
@@ -71,6 +74,12 @@ function isSupportedField(field) {
 function isArrayInterface(fieldInterface) {
   return ARRAY_INTERFACES.has(String(fieldInterface || ""));
 }
+function isTextInterface(fieldInterface) {
+  return import_types.TEXT_INTERFACES.includes(String(fieldInterface || ""));
+}
+function isTextField(field) {
+  return isTextInterface(getFieldInterface(field));
+}
 function hasFilterValue(value) {
   if (Array.isArray(value)) return value.length > 0;
   return value !== void 0 && value !== null && value !== "";
@@ -90,6 +99,10 @@ function normalizeQuickFilterArray(value) {
 function normalizeQuickFilterValue(value, multiple) {
   const values = normalizeQuickFilterArray(value);
   return multiple ? values : values[0];
+}
+function normalizeTextFilterValue(value) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized || void 0;
 }
 function normalizeQuickFilterValueByOperator(operator, value) {
   return ARRAY_VALUE_OPERATORS.has(operator) ? normalizeQuickFilterArray(value) : value;
@@ -145,10 +158,19 @@ function restrictOptions(options, candidateValues) {
   );
 }
 function defaultOperator(fieldInterface, multiple = false) {
+  if (isTextInterface(fieldInterface)) return "$includes";
   if (isArrayInterface(fieldInterface)) return multiple ? "$anyOf" : "$match";
   return multiple ? "$in" : "$eq";
 }
 function operatorOptions(fieldInterface) {
+  if (isTextInterface(fieldInterface)) {
+    return [
+      { value: "$includes", label: "Contains" },
+      { value: "$notIncludes", label: "Does not contain" },
+      { value: "$eq", label: "Equals" },
+      { value: "$ne", label: "Not equal" }
+    ];
+  }
   if (isArrayInterface(fieldInterface)) {
     return [
       { value: "$match", label: "Matches" },
@@ -165,6 +187,9 @@ function operatorOptions(fieldInterface) {
   ];
 }
 function effectiveOperator(config, fieldInterface) {
+  if (isTextInterface(fieldInterface || config.fieldInterface)) {
+    return config.operator || defaultOperator(fieldInterface || config.fieldInterface);
+  }
   const multiple = config.style === "multiButton" || Boolean(config.multiple);
   const requested = config.operator || defaultOperator(fieldInterface, multiple);
   if (!multiple || isArrayInterface(fieldInterface)) return requested;
@@ -173,11 +198,13 @@ function effectiveOperator(config, fieldInterface) {
   return requested;
 }
 function buildQuickFilter(config, value, fieldInterface) {
+  const resolvedInterface = fieldInterface || config.fieldInterface;
+  const textFilter = isTextInterface(resolvedInterface);
   const multiple = config.style === "multiButton" || Boolean(config.multiple);
-  const operator = effectiveOperator(config, fieldInterface);
-  let normalizedValue = normalizeQuickFilterValue(value, multiple);
+  const operator = effectiveOperator(config, resolvedInterface);
+  let normalizedValue = textFilter ? normalizeTextFilterValue(value) : normalizeQuickFilterValue(value, multiple);
   if (!config.fieldName || !hasFilterValue(normalizedValue)) return void 0;
-  const candidateValues = normalizeQuickFilterArray(config.candidateValues);
+  const candidateValues = textFilter ? [] : normalizeQuickFilterArray(config.candidateValues);
   if (candidateValues.length) {
     const allowed = (candidate) => candidateValues.some(
       (item) => Object.is(item, candidate) || String(item) === String(candidate)
@@ -201,14 +228,17 @@ function serializableOptions(field) {
 }
 function createDefaultConfig(field) {
   const fieldInterface = getFieldInterface(field);
+  const textFilter = isTextInterface(fieldInterface);
   return {
     fieldName: String(field.name || ""),
+    fieldInterface,
     fieldTitle: getFieldTitle(field),
     showTitle: true,
-    style: "select",
+    fullRow: false,
+    style: textFilter ? void 0 : "select",
     multiple: false,
     operator: defaultOperator(fieldInterface, false),
-    options: serializableOptions(field)
+    options: textFilter ? void 0 : serializableOptions(field)
   };
 }
 // Annotate the CommonJS export names for ESM import in node:
@@ -222,10 +252,13 @@ function createDefaultConfig(field) {
   hasFilterValue,
   isArrayInterface,
   isSupportedField,
+  isTextField,
+  isTextInterface,
   normalizeOptions,
   normalizeQuickFilterArray,
   normalizeQuickFilterValue,
   normalizeQuickFilterValueByOperator,
+  normalizeTextFilterValue,
   operatorOptions,
   resolveFieldOptions,
   resolveFieldOptionsSync,

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.0 - 2026-09-17
 
 - Added submitted text quick filters for `input`, `textarea`, `email`, `phone`, and `url` fields in V1 and V2 pages. Searches run only from the Search button or Enter.
 - Added text operators and configurable placeholder/default keyword support.
