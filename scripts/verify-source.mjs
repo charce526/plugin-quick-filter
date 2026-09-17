@@ -141,6 +141,17 @@ assert.ok(
 const utils = read('src/shared/utils.ts');
 assert.ok(utils.includes('normalizeQuickFilterArray'), 'Quick-filter array normalization is missing');
 assert.ok(utils.includes('normalizeQuickFilterValue'), 'Quick-filter value normalization is missing');
+assert.ok(
+  utils.includes('normalizeQuickFilterValueByOperator'),
+  'Quick-filter values are not normalized according to operator requirements',
+);
+for (const operator of ['$match', '$notMatch', '$anyOf', '$noneOf', '$in', '$notIn']) {
+  assert.ok(utils.includes(`'${operator}'`), `Array-value operator normalization is missing: ${operator}`);
+}
+assert.ok(
+  utils.includes('if (!multiple || isArrayInterface(fieldInterface)) return requested;'),
+  'Array-field operators are still being rewritten when the control allows multiple values',
+);
 
 const v2Model = read('src/client-v2/QuickFilterActionModel.tsx');
 for (const api of ['addFilterGroup', 'removeFilterGroup', 'setFilterActive', 'setPage']) {

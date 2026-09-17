@@ -7,6 +7,14 @@ import type {
 import { SUPPORTED_INTERFACES } from './types';
 
 const ARRAY_INTERFACES = new Set(['checkboxGroup', 'multipleSelect']);
+const ARRAY_VALUE_OPERATORS = new Set([
+  '$match',
+  '$notMatch',
+  '$anyOf',
+  '$noneOf',
+  '$in',
+  '$notIn',
+]);
 
 export function getFieldInterface(field?: CollectionFieldLike): string {
   return String(field?.interface || field?.options?.interface || '');
@@ -59,6 +67,13 @@ export function normalizeQuickFilterValue(
 ): QuickFilterPrimitive | QuickFilterPrimitive[] | undefined {
   const values = normalizeQuickFilterArray(value);
   return multiple ? values : values[0];
+}
+
+export function normalizeQuickFilterValueByOperator(
+  operator: string,
+  value: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined,
+): QuickFilterPrimitive | QuickFilterPrimitive[] | undefined {
+  return ARRAY_VALUE_OPERATORS.has(operator) ? normalizeQuickFilterArray(value) : value;
 }
 
 export function normalizeOptions(input: any): QuickFilterOption[] {
@@ -147,15 +162,10 @@ export function operatorOptions(fieldInterface?: string) {
 export function effectiveOperator(config: QuickFilterConfig, fieldInterface?: string): string {
   const multiple = config.style === 'multiButton' || Boolean(config.multiple);
   const requested = config.operator || defaultOperator(fieldInterface, multiple);
-  if (!multiple) return requested;
+  if (!multiple || isArrayInterface(fieldInterface)) return requested;
 
-  if (isArrayInterface(fieldInterface)) {
-    if (requested === '$match') return '$anyOf';
-    if (requested === '$notMatch') return '$noneOf';
-  } else {
-    if (requested === '$eq') return '$in';
-    if (requested === '$ne') return '$notIn';
-  }
+  if (requested === '$eq') return '$in';
+  if (requested === '$ne') return '$notIn';
   return requested;
 }
 
@@ -165,6 +175,7 @@ export function buildQuickFilter(
   fieldInterface?: string,
 ): Record<string, any> | undefined {
   const multiple = config.style === 'multiButton' || Boolean(config.multiple);
+  const operator = effectiveOperator(config, fieldInterface);
   let normalizedValue: any = normalizeQuickFilterValue(value, multiple);
   if (!config.fieldName || !hasFilterValue(normalizedValue)) return undefined;
 
@@ -181,10 +192,14 @@ export function buildQuickFilter(
         : undefined;
   }
 
+  // NocoBase's array operators call array methods internally even when the
+  // control only selected one option. Match the core filter normalization:
+  // scalar -> [scalar], empty -> [].
+  normalizedValue = normalizeQuickFilterValueByOperator(operator, normalizedValue);
   if (!hasFilterValue(normalizedValue)) return undefined;
   return {
     [config.fieldName]: {
-      [effectiveOperator(config, fieldInterface)]: normalizedValue,
+      [operator]: normalizedValue,
     },
   };
 }

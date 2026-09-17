@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Normalized `$match`, `$notMatch`, `$anyOf`, `$noneOf`, `$in` and `$notIn` values as arrays, matching NocoBase 2.2.x filter behavior and preventing server-side `value.sort is not a function` errors.
+- Preserved the selected array-field operator instead of silently rewriting `$match`/`$notMatch` to `$anyOf`/`$noneOf` when multiple selection is enabled.
+
 ## 1.1.0 - 2026-09-17
 
 - Normalized empty, scalar and array values before rendering multi-select controls and building filters, fixing the `value.sort is not a function` crash in both V1 and V2.
