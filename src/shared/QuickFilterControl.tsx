@@ -1,4 +1,4 @@
-import { Button, Checkbox, Radio, Select, Space, Tooltip, Typography } from 'antd';
+import { Button, Checkbox, Input, Radio, Select, Space, Tooltip, Typography } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CollectionFieldLike,
@@ -51,10 +51,31 @@ export interface QuickFilterControlProps {
   fallbackOptions?: QuickFilterOption[];
   candidateValues?: QuickFilterPrimitive[];
   disabled?: boolean;
+  fullRow?: boolean;
   allText: React.ReactNode;
   noOptionsText: React.ReactNode;
   onChange: (value: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined) => void;
   compileLabel?: (label: any) => React.ReactNode;
+}
+
+export interface QuickTextFilterControlProps {
+  title?: React.ReactNode;
+  showTitle?: boolean;
+  tooltip?: React.ReactNode;
+  value?: QuickFilterPrimitive | QuickFilterPrimitive[];
+  placeholder?: string;
+  searchText: React.ReactNode;
+  fullRow?: boolean;
+  disabled?: boolean;
+  onSearch: (value: QuickFilterPrimitive | undefined) => void;
+}
+
+interface QuickFilterContainerProps {
+  title?: React.ReactNode;
+  showTitle?: boolean;
+  tooltip?: React.ReactNode;
+  fullRow?: boolean;
+  children: React.ReactNode;
 }
 
 export function useResolvedOptions(
@@ -77,36 +98,9 @@ export function useResolvedOptions(
   return options;
 }
 
-export function QuickFilterControl(props: QuickFilterControlProps) {
-  const {
-    title,
-    showTitle = true,
-    tooltip,
-    styleType = 'select',
-    value,
-    field,
-    fallbackOptions = [],
-    candidateValues,
-    disabled,
-    allText,
-    noOptionsText,
-    onChange,
-    compileLabel = (label) => label,
-  } = props;
-
-  const multiple = styleType === 'multiButton' || Boolean(props.multiple);
-  const normalizedValue = normalizeQuickFilterValue(value, multiple);
+function QuickFilterContainer(props: QuickFilterContainerProps) {
+  const { title, showTitle = true, tooltip, fullRow = false, children } = props;
   const rowRef = useRef<HTMLDivElement>(null);
-  const resolved = useResolvedOptions(field, fallbackOptions);
-  const options = useMemo(
-    () =>
-      restrictOptions(resolved, candidateValues).map((option) => ({
-        ...option,
-        label: compileLabel(option.label),
-      })),
-    [resolved, candidateValues, compileLabel],
-  );
-  const isDisabled = disabled || options.length === 0;
 
   useEffect(() => {
     const rowItem = rowRef.current?.closest('.ant-space-item') as HTMLElement | null;
@@ -118,7 +112,8 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
       (child) => child !== leftGroup && child.classList.contains('ant-space'),
     ) as HTMLElement | undefined;
 
-    rowItem.classList.add('nb-quick-filter-row-item');
+    rowItem.classList.add('nb-quick-filter-layout-item');
+    rowItem.classList.toggle('nb-quick-filter-row-item', fullRow);
     leftGroup?.classList.add('nb-quick-filter-left-group');
     if (rightGroup) {
       actionRow?.classList.add('nb-quick-filter-action-row');
@@ -126,14 +121,62 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
     }
 
     return () => {
-      rowItem.classList.remove('nb-quick-filter-row-item');
-      if (!leftGroup?.querySelector('.nb-quick-filter-row-item')) {
+      rowItem.classList.remove('nb-quick-filter-layout-item', 'nb-quick-filter-row-item');
+      if (!leftGroup?.querySelector('.nb-quick-filter-layout-item')) {
         leftGroup?.classList.remove('nb-quick-filter-left-group');
         actionRow?.classList.remove('nb-quick-filter-action-row');
         rightGroup?.classList.remove('nb-quick-filter-right-group');
       }
     };
-  }, []);
+  }, [fullRow]);
+
+  const content = (
+    <div
+      ref={rowRef}
+      className="nb-quick-filter-row"
+      style={{ display: 'flex', width: fullRow ? '100%' : undefined, maxWidth: '100%' }}
+    >
+      <style>{QUICK_FILTER_ROW_STYLES}</style>
+      <Space size={10} align="center" wrap>
+        {showTitle && title ? <Typography.Text>{title}</Typography.Text> : null}
+        {children}
+      </Space>
+    </div>
+  );
+
+  return tooltip ? <Tooltip title={tooltip}>{content}</Tooltip> : content;
+}
+
+export function QuickFilterControl(props: QuickFilterControlProps) {
+  const {
+    title,
+    showTitle = true,
+    tooltip,
+    styleType = 'select',
+    value,
+    field,
+    fallbackOptions = [],
+    candidateValues,
+    disabled,
+    fullRow,
+    allText,
+    noOptionsText,
+    onChange,
+    compileLabel = (label) => label,
+  } = props;
+
+  const multiple = styleType === 'multiButton' || Boolean(props.multiple);
+  const normalizedValue = normalizeQuickFilterValue(value, multiple);
+  const resolved = useResolvedOptions(field, fallbackOptions);
+  const options = useMemo(
+    () =>
+      restrictOptions(resolved, candidateValues).map((option) => ({
+        ...option,
+        label: compileLabel(option.label),
+      })),
+    [resolved, candidateValues, compileLabel],
+  );
+  const isDisabled = disabled || options.length === 0;
 
   let control: React.ReactNode;
   if (styleType === 'select') {
@@ -186,15 +229,45 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
     );
   }
 
-  const content = (
-    <div ref={rowRef} className="nb-quick-filter-row" style={{ display: 'flex', width: '100%' }}>
-      <style>{QUICK_FILTER_ROW_STYLES}</style>
-      <Space size={10} align="center" wrap>
-        {showTitle && title ? <Typography.Text>{title}</Typography.Text> : null}
-        {control}
-      </Space>
-    </div>
+  return (
+    <QuickFilterContainer title={title} showTitle={showTitle} tooltip={tooltip} fullRow={fullRow}>
+      {control}
+    </QuickFilterContainer>
   );
+}
 
-  return tooltip ? <Tooltip title={tooltip}>{content}</Tooltip> : content;
+export function QuickTextFilterControl(props: QuickTextFilterControlProps) {
+  const {
+    title,
+    showTitle = true,
+    tooltip,
+    value,
+    placeholder,
+    searchText,
+    fullRow,
+    disabled,
+    onSearch,
+  } = props;
+  const appliedValue = typeof value === 'string' ? value : '';
+  const [draftValue, setDraftValue] = useState(appliedValue);
+
+  useEffect(() => {
+    setDraftValue(appliedValue);
+  }, [appliedValue]);
+
+  return (
+    <QuickFilterContainer title={title} showTitle={showTitle} tooltip={tooltip} fullRow={fullRow}>
+      <Input.Search
+        allowClear
+        disabled={disabled}
+        enterButton={searchText}
+        placeholder={placeholder}
+        size="middle"
+        style={{ width: 280, maxWidth: '100%' }}
+        value={draftValue}
+        onChange={(event) => setDraftValue(event.target.value)}
+        onSearch={(nextValue) => onSearch(nextValue.trim() || undefined)}
+      />
+    </QuickFilterContainer>
+  );
 }
