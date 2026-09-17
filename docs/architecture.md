@@ -40,10 +40,14 @@ V1 的新建弹窗会显式继承当前页面的 `SchemaOptionsContext`，确保
 
 模型既注册到 FlowEngine，也注册到 `CollectionActionGroupModel` 的动作表；前者负责模型创建与恢复，后者确保它出现在 V2 集合区块的“添加操作”菜单中。NocoBase 2.2.x 还可能在旧客户端外壳中承载 V2 页面，因此 `src/client` 会像官方操作插件一样同步注册该模型；独立 V2 外壳则继续使用 `src/client-v2` 入口。
 
-## 字段与运算符
+## 字段、交互与运算符
 
 标量选项字段默认使用 `$eq`，多选时归一为 `$in`。数组选项字段默认使用 `$match`，多选时归一为 `$anyOf`。同时提供相反运算符供页面设计者选择。
 
+文本字段（`input`、`textarea`、`email`、`phone`、`url`）使用独立的搜索框，默认运算符为 `$includes`，还可选择 `$notIncludes`、`$eq`、`$ne`。输入内容仅保存在控件草稿状态，点击搜索或按 Enter 后才写入筛选组并刷新资源；提交空白内容会移除当前筛选。
+
+每个配置通过 `fullRow` 独立决定是否占满操作栏左侧一行。未启用时多个快捷筛选可以同行排列；布局层始终保护右侧操作组不收缩、不被快捷筛选挤到下一行。
+
 ## 配置持久化
 
-V1 配置写入 UI Schema 的 `x-component-props`；V2 配置写入 FlowModel props。选项快照只作为字段提供者暂不可用时的回退，运行时优先读取字段的实时选项。
+V1 配置写入 UI Schema 的 `x-component-props`；V2 配置写入 FlowModel props。选项快照只作为字段提供者暂不可用时的回退，运行时优先读取字段的实时选项。旧配置没有 `fullRow` 时按未勾选处理。
