@@ -75,6 +75,8 @@ function QuickFilterControl(props) {
     compileLabel = (label) => label
   } = props;
   const multiple = styleType === "multiButton" || Boolean(props.multiple);
+  const normalizedValue = (0, import_utils.normalizeQuickFilterValue)(value, multiple);
+  const rowRef = (0, import_react.useRef)(null);
   const resolved = useResolvedOptions(field, fallbackOptions);
   const options = (0, import_react.useMemo)(
     () => (0, import_utils.restrictOptions)(resolved, candidateValues).map((option) => ({
@@ -84,6 +86,21 @@ function QuickFilterControl(props) {
     [resolved, candidateValues, compileLabel]
   );
   const isDisabled = disabled || options.length === 0;
+  (0, import_react.useEffect)(() => {
+    var _a;
+    const rowItem = (_a = rowRef.current) == null ? void 0 : _a.closest(".ant-space-item");
+    if (!rowItem) return;
+    const previousFlexBasis = rowItem.style.flexBasis;
+    const previousWidth = rowItem.style.width;
+    rowItem.style.flexBasis = "100%";
+    rowItem.style.width = "100%";
+    rowItem.classList.add("nb-quick-filter-row-item");
+    return () => {
+      rowItem.style.flexBasis = previousFlexBasis;
+      rowItem.style.width = previousWidth;
+      rowItem.classList.remove("nb-quick-filter-row-item");
+    };
+  }, []);
   let control;
   if (styleType === "select") {
     control = /* @__PURE__ */ import_react.default.createElement(
@@ -96,12 +113,12 @@ function QuickFilterControl(props) {
         placeholder: options.length ? allText : noOptionsText,
         size: "middle",
         style: { minWidth: 180 },
-        value,
-        onChange: (next) => onChange(next)
+        value: normalizedValue,
+        onChange: (next) => onChange((0, import_utils.normalizeQuickFilterValue)(next, multiple))
       }
     );
   } else if (multiple) {
-    const selected = Array.isArray(value) ? value : value === void 0 ? [] : [value];
+    const selected = normalizedValue;
     control = /* @__PURE__ */ import_react.default.createElement(import_antd.Space, { size: 8, wrap: true }, /* @__PURE__ */ import_react.default.createElement(import_antd.Button, { size: "middle", type: selected.length ? "default" : "primary", onClick: () => onChange(void 0) }, allText), /* @__PURE__ */ import_react.default.createElement(
       import_antd.Checkbox.Group,
       {
@@ -120,14 +137,14 @@ function QuickFilterControl(props) {
         optionType: "button",
         buttonStyle: "solid",
         size: "middle",
-        value: value === void 0 || value === null || value === "" ? CLEAR_VALUE : value,
+        value: normalizedValue === void 0 ? CLEAR_VALUE : normalizedValue,
         onChange: (event) => onChange(event.target.value === CLEAR_VALUE ? void 0 : event.target.value)
       },
       /* @__PURE__ */ import_react.default.createElement(import_antd.Radio.Button, { value: CLEAR_VALUE }, allText),
       options.map((option) => /* @__PURE__ */ import_react.default.createElement(import_antd.Radio.Button, { key: String(option.value), value: option.value, disabled: option.disabled }, option.label))
     );
   }
-  const content = /* @__PURE__ */ import_react.default.createElement(import_antd.Space, { size: 10, align: "center", wrap: true }, showTitle && title ? /* @__PURE__ */ import_react.default.createElement(import_antd.Typography.Text, null, title) : null, control);
+  const content = /* @__PURE__ */ import_react.default.createElement("div", { ref: rowRef, className: "nb-quick-filter-row", style: { display: "flex", width: "100%" } }, /* @__PURE__ */ import_react.default.createElement(import_antd.Space, { size: 10, align: "center", wrap: true }, showTitle && title ? /* @__PURE__ */ import_react.default.createElement(import_antd.Typography.Text, null, title) : null, control));
   return tooltip ? /* @__PURE__ */ import_react.default.createElement(import_antd.Tooltip, { title: tooltip }, content) : content;
 }
 // Annotate the CommonJS export names for ESM import in node:

@@ -4,6 +4,8 @@ export declare function getFieldTitle(field?: CollectionFieldLike): any;
 export declare function isSupportedField(field?: CollectionFieldLike): boolean;
 export declare function isArrayInterface(fieldInterface?: string): boolean;
 export declare function hasFilterValue(value: unknown): boolean;
+export declare function normalizeQuickFilterArray(value: unknown): QuickFilterPrimitive[];
+export declare function normalizeQuickFilterValue(value: unknown, multiple: boolean): QuickFilterPrimitive | QuickFilterPrimitive[] | undefined;
 export declare function normalizeOptions(input: any): QuickFilterOption[];
 export declare function resolveFieldOptionsSync(field?: CollectionFieldLike): QuickFilterOption[];
 export declare function resolveFieldOptions(field?: CollectionFieldLike): Promise<QuickFilterOption[]>;

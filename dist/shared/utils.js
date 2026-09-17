@@ -36,6 +36,8 @@ __export(utils_exports, {
   isArrayInterface: () => isArrayInterface,
   isSupportedField: () => isSupportedField,
   normalizeOptions: () => normalizeOptions,
+  normalizeQuickFilterArray: () => normalizeQuickFilterArray,
+  normalizeQuickFilterValue: () => normalizeQuickFilterValue,
   operatorOptions: () => operatorOptions,
   resolveFieldOptions: () => resolveFieldOptions,
   resolveFieldOptionsSync: () => resolveFieldOptionsSync,
@@ -71,6 +73,14 @@ function optionSource(field) {
 }
 function primitive(value) {
   return ["string", "number", "boolean"].includes(typeof value);
+}
+function normalizeQuickFilterArray(value) {
+  const values = Array.isArray(value) ? value : primitive(value) ? [value] : [];
+  return values.filter(primitive);
+}
+function normalizeQuickFilterValue(value, multiple) {
+  const values = normalizeQuickFilterArray(value);
+  return multiple ? values : values[0];
 }
 function normalizeOptions(input) {
   const source = Array.isArray(input) ? input : [];
@@ -114,9 +124,10 @@ async function resolveFieldOptions(field) {
   return [];
 }
 function restrictOptions(options, candidateValues) {
-  if (!(candidateValues == null ? void 0 : candidateValues.length)) return options;
+  const candidates = normalizeQuickFilterArray(candidateValues);
+  if (!candidates.length) return options;
   return options.filter(
-    (option) => candidateValues.some(
+    (option) => candidates.some(
       (candidate) => Object.is(candidate, option.value) || String(candidate) === String(option.value)
     )
   );
@@ -155,17 +166,14 @@ function effectiveOperator(config, fieldInterface) {
   return requested;
 }
 function buildQuickFilter(config, value, fieldInterface) {
-  var _a;
-  if (!config.fieldName || !hasFilterValue(value)) return void 0;
   const multiple = config.style === "multiButton" || Boolean(config.multiple);
-  let normalizedValue = multiple && !Array.isArray(value) ? [value] : value;
-  if ((_a = config.candidateValues) == null ? void 0 : _a.length) {
-    const allowed = (candidate) => {
-      var _a2;
-      return (_a2 = config.candidateValues) == null ? void 0 : _a2.some(
-        (item) => Object.is(item, candidate) || String(item) === String(candidate)
-      );
-    };
+  let normalizedValue = normalizeQuickFilterValue(value, multiple);
+  if (!config.fieldName || !hasFilterValue(normalizedValue)) return void 0;
+  const candidateValues = normalizeQuickFilterArray(config.candidateValues);
+  if (candidateValues.length) {
+    const allowed = (candidate) => candidateValues.some(
+      (item) => Object.is(item, candidate) || String(item) === String(candidate)
+    );
     normalizedValue = Array.isArray(normalizedValue) ? normalizedValue.filter(allowed) : allowed(normalizedValue) ? normalizedValue : void 0;
   }
   if (!hasFilterValue(normalizedValue)) return void 0;
@@ -206,6 +214,8 @@ function createDefaultConfig(field) {
   isArrayInterface,
   isSupportedField,
   normalizeOptions,
+  normalizeQuickFilterArray,
+  normalizeQuickFilterValue,
   operatorOptions,
   resolveFieldOptions,
   resolveFieldOptionsSync,
