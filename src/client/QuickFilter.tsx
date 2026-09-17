@@ -10,9 +10,15 @@ import {
 } from '@nocobase/client';
 import { useFieldSchema } from '@formily/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { QuickFilterControl } from '../shared/QuickFilterControl';
+import { QuickFilterControl, QuickTextFilterControl } from '../shared/QuickFilterControl';
 import type { CollectionFieldLike, QuickFilterConfig, QuickFilterPrimitive } from '../shared/types';
-import { buildQuickFilter, getFieldInterface, getFieldTitle, hasFilterValue } from '../shared/utils';
+import {
+  buildQuickFilter,
+  getFieldInterface,
+  getFieldTitle,
+  hasFilterValue,
+  isTextInterface,
+} from '../shared/utils';
 import { useQuickFilterTranslation } from './locale';
 
 export function QuickFilter() {
@@ -32,6 +38,8 @@ export function QuickFilter() {
     [collection?.fields, config.fieldName],
   );
   const [value, setValue] = useState<QuickFilterConfig['defaultValue']>(config.defaultValue);
+  const fieldInterface = getFieldInterface(currentField) || config.fieldInterface;
+  const textFilter = isTextInterface(fieldInterface);
 
   const apply = useCallback(
     (nextValue: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined) => {
@@ -41,7 +49,7 @@ export function QuickFilter() {
       const firstParams = service.params?.[0] || {};
       const secondParams = service.params?.[1] || {};
       const filters = { ...(secondParams.filters || {}) };
-      const filter = buildQuickFilter(config, nextValue, getFieldInterface(currentField));
+      const filter = buildQuickFilter(config, nextValue, fieldInterface);
 
       if (filter) filters[sourceKey] = filter;
       else delete filters[sourceKey];
@@ -66,7 +74,7 @@ export function QuickFilter() {
         service.run(...nextParams);
       }
     },
-    [blockProps?.params?.filter, configKey, currentField, dataLoadingMode, getDataBlockRequest, sourceKey],
+    [blockProps?.params?.filter, configKey, dataLoadingMode, fieldInterface, getDataBlockRequest, sourceKey],
   );
 
   useEffect(() => {
@@ -93,24 +101,44 @@ export function QuickFilter() {
     <SortableItem
       component="div"
       className="nb-quick-filter"
-      style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '100%' }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        position: 'relative',
+        width: config.fullRow ? '100%' : undefined,
+        maxWidth: '100%',
+      }}
     >
       {renderToolbar({ draggable: true })}
-      <QuickFilterControl
-        title={compile(config.fieldTitle || getFieldTitle(currentField) || config.fieldName)}
-        showTitle={config.showTitle !== false}
-        tooltip={compile(config.tooltip)}
-        styleType={config.style || 'select'}
-        multiple={config.multiple}
-        value={value}
-        field={currentField}
-        fallbackOptions={config.options}
-        candidateValues={config.candidateValues}
-        allText={t('All')}
-        noOptionsText={t('No options')}
-        compileLabel={compile}
-        onChange={handleChange}
-      />
+      {textFilter ? (
+        <QuickTextFilterControl
+          title={compile(config.fieldTitle || getFieldTitle(currentField) || config.fieldName)}
+          showTitle={config.showTitle !== false}
+          tooltip={compile(config.tooltip)}
+          value={value}
+          placeholder={compile(config.placeholder || t('Enter keyword')) as string}
+          searchText={t('Search')}
+          fullRow={config.fullRow}
+          onSearch={handleChange}
+        />
+      ) : (
+        <QuickFilterControl
+          title={compile(config.fieldTitle || getFieldTitle(currentField) || config.fieldName)}
+          showTitle={config.showTitle !== false}
+          tooltip={compile(config.tooltip)}
+          styleType={config.style || 'select'}
+          multiple={config.multiple}
+          value={value}
+          field={currentField}
+          fallbackOptions={config.options}
+          candidateValues={config.candidateValues}
+          fullRow={config.fullRow}
+          allText={t('All')}
+          noOptionsText={t('No options')}
+          compileLabel={compile}
+          onChange={handleChange}
+        />
+      )}
     </SortableItem>
   );
 }
