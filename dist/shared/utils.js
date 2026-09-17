@@ -38,6 +38,7 @@ __export(utils_exports, {
   normalizeOptions: () => normalizeOptions,
   normalizeQuickFilterArray: () => normalizeQuickFilterArray,
   normalizeQuickFilterValue: () => normalizeQuickFilterValue,
+  normalizeQuickFilterValueByOperator: () => normalizeQuickFilterValueByOperator,
   operatorOptions: () => operatorOptions,
   resolveFieldOptions: () => resolveFieldOptions,
   resolveFieldOptionsSync: () => resolveFieldOptionsSync,
@@ -47,6 +48,14 @@ __export(utils_exports, {
 module.exports = __toCommonJS(utils_exports);
 var import_types = require("./types");
 const ARRAY_INTERFACES = /* @__PURE__ */ new Set(["checkboxGroup", "multipleSelect"]);
+const ARRAY_VALUE_OPERATORS = /* @__PURE__ */ new Set([
+  "$match",
+  "$notMatch",
+  "$anyOf",
+  "$noneOf",
+  "$in",
+  "$notIn"
+]);
 function getFieldInterface(field) {
   var _a;
   return String((field == null ? void 0 : field.interface) || ((_a = field == null ? void 0 : field.options) == null ? void 0 : _a.interface) || "");
@@ -81,6 +90,9 @@ function normalizeQuickFilterArray(value) {
 function normalizeQuickFilterValue(value, multiple) {
   const values = normalizeQuickFilterArray(value);
   return multiple ? values : values[0];
+}
+function normalizeQuickFilterValueByOperator(operator, value) {
+  return ARRAY_VALUE_OPERATORS.has(operator) ? normalizeQuickFilterArray(value) : value;
 }
 function normalizeOptions(input) {
   const source = Array.isArray(input) ? input : [];
@@ -155,18 +167,14 @@ function operatorOptions(fieldInterface) {
 function effectiveOperator(config, fieldInterface) {
   const multiple = config.style === "multiButton" || Boolean(config.multiple);
   const requested = config.operator || defaultOperator(fieldInterface, multiple);
-  if (!multiple) return requested;
-  if (isArrayInterface(fieldInterface)) {
-    if (requested === "$match") return "$anyOf";
-    if (requested === "$notMatch") return "$noneOf";
-  } else {
-    if (requested === "$eq") return "$in";
-    if (requested === "$ne") return "$notIn";
-  }
+  if (!multiple || isArrayInterface(fieldInterface)) return requested;
+  if (requested === "$eq") return "$in";
+  if (requested === "$ne") return "$notIn";
   return requested;
 }
 function buildQuickFilter(config, value, fieldInterface) {
   const multiple = config.style === "multiButton" || Boolean(config.multiple);
+  const operator = effectiveOperator(config, fieldInterface);
   let normalizedValue = normalizeQuickFilterValue(value, multiple);
   if (!config.fieldName || !hasFilterValue(normalizedValue)) return void 0;
   const candidateValues = normalizeQuickFilterArray(config.candidateValues);
@@ -176,10 +184,11 @@ function buildQuickFilter(config, value, fieldInterface) {
     );
     normalizedValue = Array.isArray(normalizedValue) ? normalizedValue.filter(allowed) : allowed(normalizedValue) ? normalizedValue : void 0;
   }
+  normalizedValue = normalizeQuickFilterValueByOperator(operator, normalizedValue);
   if (!hasFilterValue(normalizedValue)) return void 0;
   return {
     [config.fieldName]: {
-      [effectiveOperator(config, fieldInterface)]: normalizedValue
+      [operator]: normalizedValue
     }
   };
 }
@@ -216,6 +225,7 @@ function createDefaultConfig(field) {
   normalizeOptions,
   normalizeQuickFilterArray,
   normalizeQuickFilterValue,
+  normalizeQuickFilterValueByOperator,
   operatorOptions,
   resolveFieldOptions,
   resolveFieldOptionsSync,

@@ -6,6 +6,7 @@ export declare function isArrayInterface(fieldInterface?: string): boolean;
 export declare function hasFilterValue(value: unknown): boolean;
 export declare function normalizeQuickFilterArray(value: unknown): QuickFilterPrimitive[];
 export declare function normalizeQuickFilterValue(value: unknown, multiple: boolean): QuickFilterPrimitive | QuickFilterPrimitive[] | undefined;
+export declare function normalizeQuickFilterValueByOperator(operator: string, value: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined): QuickFilterPrimitive | QuickFilterPrimitive[] | undefined;
 export declare function normalizeOptions(input: any): QuickFilterOption[];
 export declare function resolveFieldOptionsSync(field?: CollectionFieldLike): QuickFilterOption[];
 export declare function resolveFieldOptions(field?: CollectionFieldLike): Promise<QuickFilterOption[]>;
