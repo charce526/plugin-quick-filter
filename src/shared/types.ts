@@ -1,4 +1,4 @@
-export const SUPPORTED_INTERFACES = [
+export const OPTION_INTERFACES = [
   'select',
   'dictDataSingle',
   'radioGroup',
@@ -6,6 +6,10 @@ export const SUPPORTED_INTERFACES = [
   'multipleSelect',
   'approvalStatus',
 ] as const;
+
+export const TEXT_INTERFACES = ['input', 'textarea', 'email', 'phone', 'url'] as const;
+
+export const SUPPORTED_INTERFACES = [...OPTION_INTERFACES, ...TEXT_INTERFACES] as const;
 
 export type SupportedInterface = (typeof SUPPORTED_INTERFACES)[number];
 export type QuickFilterStyle = 'select' | 'button' | 'multiButton';
@@ -19,9 +23,12 @@ export interface QuickFilterOption {
 
 export interface QuickFilterConfig {
   fieldName: string;
+  fieldInterface?: string;
   fieldTitle?: string;
   showTitle?: boolean;
   tooltip?: string;
+  fullRow?: boolean;
+  placeholder?: string;
   defaultValue?: QuickFilterPrimitive | QuickFilterPrimitive[];
   multiple?: boolean;
   style?: QuickFilterStyle;
