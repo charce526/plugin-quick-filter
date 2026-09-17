@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added submitted text quick filters for `input`, `textarea`, `email`, `phone`, and `url` fields in V1 and V2 pages. Searches run only from the Search button or Enter.
+- Added text operators and configurable placeholder/default keyword support.
+- Replaced the global one-filter-per-row behavior with a per-filter “Exclusive row” setting while retaining pinned right-side actions.
+
 ## 1.1.2 - 2026-09-17
 
 - Kept the right-side custom action group fixed on the right while quick filters stack and wrap only inside the remaining left-side space.
