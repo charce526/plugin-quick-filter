@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Kept the right-side custom action group fixed on the right while quick filters stack and wrap only inside the remaining left-side space.
+
 ## 1.1.1 - 2026-09-17
 
 - Normalized `$match`, `$notMatch`, `$anyOf`, `$noneOf`, `$in` and `$notIn` values as arrays, matching NocoBase 2.2.x filter behavior and preventing server-side `value.sort is not a function` errors.

@@ -9,6 +9,36 @@ import type {
 import { normalizeQuickFilterValue, resolveFieldOptions, restrictOptions } from './utils';
 
 const CLEAR_VALUE = '__xiezuo_quick_filter_clear__';
+const QUICK_FILTER_ROW_STYLES = `
+  .nb-quick-filter-action-row {
+    min-width: 0;
+  }
+
+  .nb-quick-filter-action-row > .nb-quick-filter-left-group {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  .nb-quick-filter-action-row > .nb-quick-filter-right-group {
+    flex: 0 0 auto !important;
+    margin-left: auto !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .nb-quick-filter-left-group > .nb-quick-filter-row-item {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  .nb-quick-filter-row,
+  .nb-quick-filter-row > .ant-space {
+    min-width: 0;
+    max-width: 100%;
+  }
+`;
 
 export interface QuickFilterControlProps {
   title?: React.ReactNode;
@@ -82,16 +112,26 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
     const rowItem = rowRef.current?.closest('.ant-space-item') as HTMLElement | null;
     if (!rowItem) return;
 
-    const previousFlexBasis = rowItem.style.flexBasis;
-    const previousWidth = rowItem.style.width;
-    rowItem.style.flexBasis = '100%';
-    rowItem.style.width = '100%';
+    const leftGroup = rowItem.parentElement;
+    const actionRow = leftGroup?.parentElement;
+    const rightGroup = Array.from(actionRow?.children || []).find(
+      (child) => child !== leftGroup && child.classList.contains('ant-space'),
+    ) as HTMLElement | undefined;
+
     rowItem.classList.add('nb-quick-filter-row-item');
+    leftGroup?.classList.add('nb-quick-filter-left-group');
+    if (rightGroup) {
+      actionRow?.classList.add('nb-quick-filter-action-row');
+      rightGroup.classList.add('nb-quick-filter-right-group');
+    }
 
     return () => {
-      rowItem.style.flexBasis = previousFlexBasis;
-      rowItem.style.width = previousWidth;
       rowItem.classList.remove('nb-quick-filter-row-item');
+      if (!leftGroup?.querySelector('.nb-quick-filter-row-item')) {
+        leftGroup?.classList.remove('nb-quick-filter-left-group');
+        actionRow?.classList.remove('nb-quick-filter-action-row');
+        rightGroup?.classList.remove('nb-quick-filter-right-group');
+      }
     };
   }, []);
 
@@ -148,6 +188,7 @@ export function QuickFilterControl(props: QuickFilterControlProps) {
 
   const content = (
     <div ref={rowRef} className="nb-quick-filter-row" style={{ display: 'flex', width: '100%' }}>
+      <style>{QUICK_FILTER_ROW_STYLES}</style>
       <Space size={10} align="center" wrap>
         {showTitle && title ? <Typography.Text>{title}</Typography.Text> : null}
         {control}

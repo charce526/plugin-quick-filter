@@ -137,6 +137,14 @@ assert.ok(
   control.includes("closest('.ant-space-item')"),
   'Quick-filter controls are not promoted to independent action-bar rows',
 );
+assert.ok(
+  control.includes('nb-quick-filter-left-group') && control.includes('flex: 1 1 0 !important'),
+  'The left quick-filter group does not flex within the remaining action-bar width',
+);
+assert.ok(
+  control.includes('nb-quick-filter-right-group') && control.includes('flex: 0 0 auto !important'),
+  'The right action group can still shrink or be pushed onto another row',
+);
 
 const utils = read('src/shared/utils.ts');
 assert.ok(utils.includes('normalizeQuickFilterArray'), 'Quick-filter array normalization is missing');
