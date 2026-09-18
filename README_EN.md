@@ -23,6 +23,7 @@ The repository ships both source and the NocoBase build output (`dist`), so the 
 - Multiple quick filters compose with each other, the regular filter action, and the block's base data scope.
 - V1 registers the 2.2.x table action initializer (current name with a legacy fallback).
 - V2 uses a dedicated action model and resource filter groups.
+- Selecting a field from the V2 quick-filter submenu initializes that field immediately; no second target-field selection is required.
 
 ## Release
 
