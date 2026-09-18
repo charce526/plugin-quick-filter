@@ -20,6 +20,7 @@ export declare class QuickFilterActionModel extends ActionModel {
     private currentValue;
     private hasCurrentValue;
     private defaultValueApplied;
+    getQuickFilterConfig(): QuickFilterActionProps;
     getCurrentValue(): any;
     applyDefaultValueOnce(): void;
     applyValue(value: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined): void;

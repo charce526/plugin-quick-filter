@@ -5,7 +5,7 @@
   "displayName.zh-CN": "快捷筛选",
   "description": "Configurable quick filters for NocoBase V1 and V2 collection pages.",
   "description.zh-CN": "为 NocoBase V1 与 V2 数据页面提供可配置的快捷筛选。",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "author": {
     "name": "偕作BIM",
     "url": "https://www.xzbim.cn"
