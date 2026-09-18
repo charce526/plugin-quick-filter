@@ -55,7 +55,7 @@ function QuickFilterRuntime({
   model: QuickFilterActionModel;
   field?: CollectionFieldLike;
 }) {
-  const config = model.props;
+  const config = model.getQuickFilterConfig();
   const fieldInterface = getFieldInterface(field) || config.fieldInterface;
   const textFilter = isTextInterface(fieldInterface);
   const configKey = JSON.stringify({
@@ -142,31 +142,45 @@ export class QuickFilterActionModel extends ActionModel {
   private hasCurrentValue = false;
   private defaultValueApplied = false;
 
+  getQuickFilterConfig(): QuickFilterActionProps {
+    const initialConfig = this.getStepParams('quickFilterInit', 'field') as
+      | QuickFilterActionProps
+      | undefined;
+    if (this.props.fieldName || !initialConfig?.fieldName) return this.props;
+    return {
+      ...this.props,
+      ...initialConfig,
+    };
+  }
+
   getCurrentValue() {
-    return this.hasCurrentValue ? this.currentValue : this.props.defaultValue;
+    const config = this.getQuickFilterConfig();
+    return this.hasCurrentValue ? this.currentValue : config.defaultValue;
   }
 
   applyDefaultValueOnce() {
     if (this.defaultValueApplied) return;
     this.defaultValueApplied = true;
 
-    const field = getField(this.context, this.props.fieldName);
-    const fieldInterface = getFieldInterface(field) || this.props.fieldInterface;
+    const config = this.getQuickFilterConfig();
+    const field = getField(this.context, config.fieldName);
+    const fieldInterface = getFieldInterface(field) || config.fieldInterface;
     const textFilter = isTextInterface(fieldInterface);
-    const multiple = !textFilter && (this.props.style === 'multiButton' || Boolean(this.props.multiple));
+    const multiple = !textFilter && (config.style === 'multiButton' || Boolean(config.multiple));
     const defaultValue = textFilter
-      ? normalizeTextFilterValue(this.props.defaultValue)
-      : normalizeQuickFilterValue(this.props.defaultValue, multiple);
+      ? normalizeTextFilterValue(config.defaultValue)
+      : normalizeQuickFilterValue(config.defaultValue, multiple);
     this.currentValue = defaultValue;
     this.hasCurrentValue = true;
     if (hasFilterValue(defaultValue)) this.applyValue(defaultValue);
   }
 
   applyValue(value: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined) {
-    const field = getField(this.context, this.props.fieldName);
-    const fieldInterface = getFieldInterface(field) || this.props.fieldInterface;
+    const config = this.getQuickFilterConfig();
+    const field = getField(this.context, config.fieldName);
+    const fieldInterface = getFieldInterface(field) || config.fieldInterface;
     const textFilter = isTextInterface(fieldInterface);
-    const multiple = !textFilter && (this.props.style === 'multiButton' || Boolean(this.props.multiple));
+    const multiple = !textFilter && (config.style === 'multiButton' || Boolean(config.multiple));
     const normalizedValue = textFilter
       ? normalizeTextFilterValue(value)
       : normalizeQuickFilterValue(value, multiple);
@@ -177,7 +191,7 @@ export class QuickFilterActionModel extends ActionModel {
     const resource = blockModel?.resource as MultiRecordResource;
     if (!blockModel || !resource) return;
 
-    const filter = buildQuickFilter(this.props, normalizedValue, fieldInterface);
+    const filter = buildQuickFilter(config, normalizedValue, fieldInterface);
     const active = hasFilterValue(normalizedValue) && Boolean(filter);
 
     blockModel.setFilterActive(this.uid, active);
@@ -213,7 +227,8 @@ export class QuickFilterActionModel extends ActionModel {
   }
 
   render() {
-    const field = getField(this.context, this.props.fieldName);
+    const config = this.getQuickFilterConfig();
+    const field = getField(this.context, config.fieldName);
     return <QuickFilterRuntime model={this} field={field} />;
   }
 }
@@ -222,18 +237,26 @@ QuickFilterActionModel.define({
   label: tExpr('Quick filter', { ns: NAMESPACE }),
   sort: 6,
   children: async (ctx) =>
-    getFields(ctx).map((field) => ({
-      key: 'quick-filter-' + field.name,
-      label: getFieldTitle(field),
-      useModel: 'QuickFilterActionModel',
-      createModelOptions: () => ({
-        use: 'QuickFilterActionModel',
-        props: {
-          ...createDefaultConfig(field),
-          position: 'left',
-        },
-      }),
-    })),
+    getFields(ctx).map((field) => {
+      const initialConfig: QuickFilterActionProps = {
+        ...createDefaultConfig(field),
+        position: 'left',
+      };
+      return {
+        key: 'quick-filter-' + field.name,
+        label: getFieldTitle(field),
+        useModel: 'QuickFilterActionModel',
+        createModelOptions: () => ({
+          use: 'QuickFilterActionModel',
+          props: { ...initialConfig },
+          stepParams: {
+            quickFilterInit: {
+              field: { ...initialConfig },
+            },
+          },
+        }),
+      };
+    }),
 });
 
 QuickFilterActionModel.registerFlow({
@@ -275,16 +298,18 @@ QuickFilterActionModel.registerFlow({
         };
       },
       defaultParams(ctx) {
+        const config = ctx.model.getQuickFilterConfig();
         return {
-          fieldName: ctx.model.props.fieldName,
-          fieldTitle: ctx.model.props.fieldTitle,
-          showTitle: ctx.model.props.showTitle !== false,
-          tooltip: ctx.model.props.tooltip,
-          fullRow: Boolean(ctx.model.props.fullRow),
+          fieldName: config.fieldName,
+          fieldTitle: config.fieldTitle,
+          showTitle: config.showTitle !== false,
+          tooltip: config.tooltip,
+          fullRow: Boolean(config.fullRow),
         };
       },
       handler(ctx, params) {
-        const previous = ctx.model.props.fieldName;
+        const config = ctx.model.getQuickFilterConfig();
+        const previous = config.fieldName;
         const field = getField(ctx, params.fieldName);
         const changed = previous !== params.fieldName;
         if (changed) ctx.model.applyValue(undefined);
@@ -295,25 +320,26 @@ QuickFilterActionModel.registerFlow({
           showTitle: params.showTitle !== false,
           tooltip: params.tooltip,
           fullRow: Boolean(params.fullRow),
-          style: isTextInterface(getFieldInterface(field)) ? undefined : ctx.model.props.style || 'select',
-          multiple: isTextInterface(getFieldInterface(field)) ? false : ctx.model.props.multiple,
+          style: isTextInterface(getFieldInterface(field)) ? undefined : config.style || 'select',
+          multiple: isTextInterface(getFieldInterface(field)) ? false : config.multiple,
           options: isTextInterface(getFieldInterface(field)) ? undefined : serializableOptions(field),
           candidateValues:
             changed || isTextInterface(getFieldInterface(field))
               ? undefined
-              : ctx.model.props.candidateValues,
-          defaultValue: changed ? undefined : ctx.model.props.defaultValue,
+              : config.candidateValues,
+          defaultValue: changed ? undefined : config.defaultValue,
           operator: changed
-            ? defaultOperator(getFieldInterface(field), Boolean(ctx.model.props.multiple))
-            : ctx.model.props.operator,
+            ? defaultOperator(getFieldInterface(field), Boolean(config.multiple))
+            : config.operator,
         });
       },
     },
     display: {
       title: tExpr('Display settings', { ns: NAMESPACE }),
       uiSchema(ctx) {
-        const field = getField(ctx, ctx.model.props.fieldName);
-        if (isTextInterface(getFieldInterface(field) || ctx.model.props.fieldInterface)) {
+        const config = ctx.model.getQuickFilterConfig();
+        const field = getField(ctx, config.fieldName);
+        if (isTextInterface(getFieldInterface(field) || config.fieldInterface)) {
           return {
             placeholder: {
               title: tExpr('Placeholder', { ns: NAMESPACE }),
@@ -341,18 +367,20 @@ QuickFilterActionModel.registerFlow({
         };
       },
       defaultParams(ctx) {
-        const field = getField(ctx, ctx.model.props.fieldName);
-        if (isTextInterface(getFieldInterface(field) || ctx.model.props.fieldInterface)) {
-          return { placeholder: ctx.model.props.placeholder };
+        const config = ctx.model.getQuickFilterConfig();
+        const field = getField(ctx, config.fieldName);
+        if (isTextInterface(getFieldInterface(field) || config.fieldInterface)) {
+          return { placeholder: config.placeholder };
         }
         return {
-          style: ctx.model.props.style || 'select',
-          multiple: ctx.model.props.style === 'multiButton' || Boolean(ctx.model.props.multiple),
+          style: config.style || 'select',
+          multiple: config.style === 'multiButton' || Boolean(config.multiple),
         };
       },
       handler(ctx, params) {
-        const field = getField(ctx, ctx.model.props.fieldName);
-        const fieldInterface = getFieldInterface(field) || ctx.model.props.fieldInterface;
+        const config = ctx.model.getQuickFilterConfig();
+        const field = getField(ctx, config.fieldName);
+        const fieldInterface = getFieldInterface(field) || config.fieldInterface;
         if (isTextInterface(fieldInterface)) {
           ctx.model.setProps({ placeholder: params.placeholder });
           return;
@@ -369,11 +397,12 @@ QuickFilterActionModel.registerFlow({
     values: {
       title: tExpr('Value settings', { ns: NAMESPACE }),
       uiSchema(ctx) {
-        const field = getField(ctx, ctx.model.props.fieldName);
-        const fieldInterface = getFieldInterface(field) || ctx.model.props.fieldInterface;
+        const config = ctx.model.getQuickFilterConfig();
+        const field = getField(ctx, config.fieldName);
+        const fieldInterface = getFieldInterface(field) || config.fieldInterface;
         const textFilter = isTextInterface(fieldInterface);
         const options = serializableOptions(field);
-        const multiple = ctx.model.props.style === 'multiButton' || Boolean(ctx.model.props.multiple);
+        const multiple = config.style === 'multiButton' || Boolean(config.multiple);
         return {
           operator: {
             title: tExpr('Operator', { ns: NAMESPACE }),
@@ -410,25 +439,27 @@ QuickFilterActionModel.registerFlow({
         };
       },
       defaultParams(ctx) {
-        const field = getField(ctx, ctx.model.props.fieldName);
-        const fieldInterface = getFieldInterface(field) || ctx.model.props.fieldInterface;
+        const config = ctx.model.getQuickFilterConfig();
+        const field = getField(ctx, config.fieldName);
+        const fieldInterface = getFieldInterface(field) || config.fieldInterface;
         const textFilter = isTextInterface(fieldInterface);
-        const multiple = ctx.model.props.style === 'multiButton' || Boolean(ctx.model.props.multiple);
+        const multiple = config.style === 'multiButton' || Boolean(config.multiple);
         return {
-          operator: ctx.model.props.operator || defaultOperator(fieldInterface, multiple),
+          operator: config.operator || defaultOperator(fieldInterface, multiple),
           candidateValues: textFilter
             ? undefined
-            : normalizeQuickFilterArray(ctx.model.props.candidateValues),
+            : normalizeQuickFilterArray(config.candidateValues),
           defaultValue: textFilter
-            ? normalizeTextFilterValue(ctx.model.props.defaultValue)
-            : normalizeQuickFilterValue(ctx.model.props.defaultValue, multiple),
+            ? normalizeTextFilterValue(config.defaultValue)
+            : normalizeQuickFilterValue(config.defaultValue, multiple),
         };
       },
       handler(ctx, params) {
-        const field = getField(ctx, ctx.model.props.fieldName);
-        const fieldInterface = getFieldInterface(field) || ctx.model.props.fieldInterface;
+        const config = ctx.model.getQuickFilterConfig();
+        const field = getField(ctx, config.fieldName);
+        const fieldInterface = getFieldInterface(field) || config.fieldInterface;
         const textFilter = isTextInterface(fieldInterface);
-        const multiple = !textFilter && (ctx.model.props.style === 'multiButton' || Boolean(ctx.model.props.multiple));
+        const multiple = !textFilter && (config.style === 'multiButton' || Boolean(config.multiple));
         const candidateValues = textFilter
           ? undefined
           : normalizeQuickFilterArray(params.candidateValues);
