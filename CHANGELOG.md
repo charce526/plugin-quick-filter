@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Persisted the field selected from the V2 quick-filter submenu as initialization step parameters, so newly added filters work immediately without selecting the target field again in Basic settings.
+
 ## 2.0.0 - 2026-09-17
 
 - Added submitted text quick filters for `input`, `textarea`, `email`, `phone`, and `url` fields in V1 and V2 pages. Searches run only from the Search button or Enter.
