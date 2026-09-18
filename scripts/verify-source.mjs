@@ -191,6 +191,14 @@ assert.ok(
   'V2 default-value application is not guarded against FlowEngine remounts',
 );
 assert.ok(
+  v2Model.includes("getStepParams('quickFilterInit', 'field')"),
+  'V2 runtime cannot recover the field selected from the add-action submenu',
+);
+assert.ok(
+  v2Model.includes('quickFilterInit') && v2Model.includes('field: { ...initialConfig }'),
+  'V2 add-action submenu does not persist its selected field as initialization parameters',
+);
+assert.ok(
   !v2Model.includes('return () => model.detach()'),
   'V2 filter is still detached by the React effect cleanup path',
 );
