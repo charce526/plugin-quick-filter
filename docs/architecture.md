@@ -38,6 +38,8 @@ V1 的新建弹窗会显式继承当前页面的 `SchemaOptionsContext`，确保
 
 这与 NocoBase 2.2.10 原生 `FilterActionModel` 使用同一组资源接口。
 
+V2 添加菜单中的字段选择会同时写入模型 `props` 和内部初始化 `stepParams`。运行时与设置流程统一读取有效配置，因此即使某些 2.2.x 页面外壳在创建阶段没有保留字段 `props`，也能从初始化参数恢复目标字段，不需要用户在“基本设置”中再次选择。
+
 模型既注册到 FlowEngine，也注册到 `CollectionActionGroupModel` 的动作表；前者负责模型创建与恢复，后者确保它出现在 V2 集合区块的“添加操作”菜单中。NocoBase 2.2.x 还可能在旧客户端外壳中承载 V2 页面，因此 `src/client` 会像官方操作插件一样同步注册该模型；独立 V2 外壳则继续使用 `src/client-v2` 入口。
 
 ## 字段、交互与运算符
