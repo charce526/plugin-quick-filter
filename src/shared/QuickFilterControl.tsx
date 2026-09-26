@@ -67,6 +67,8 @@ export interface QuickTextFilterControlProps {
   searchText: React.ReactNode;
   fullRow?: boolean;
   disabled?: boolean;
+  /** Smart filters search several fields at once, so they get a wider box. */
+  inputWidth?: number;
   onSearch: (value: QuickFilterPrimitive | undefined) => void;
 }
 
@@ -246,6 +248,7 @@ export function QuickTextFilterControl(props: QuickTextFilterControlProps) {
     searchText,
     fullRow,
     disabled,
+    inputWidth = 280,
     onSearch,
   } = props;
   const appliedValue = typeof value === 'string' ? value : '';
@@ -263,7 +266,7 @@ export function QuickTextFilterControl(props: QuickTextFilterControlProps) {
         enterButton={searchText}
         placeholder={placeholder}
         size="middle"
-        style={{ width: 280, maxWidth: '100%' }}
+        style={{ width: inputWidth, maxWidth: '100%' }}
         value={draftValue}
         onChange={(event) => setDraftValue(event.target.value)}
         onSearch={(nextValue) => onSearch(nextValue.trim() || undefined)}

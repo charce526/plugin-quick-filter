@@ -13,6 +13,7 @@ const required = [
   'src/client/QuickFilter.tsx',
   'src/client/QuickFilterInitializer.tsx',
   'src/client/quickFilterSettings.tsx',
+  'src/client/SmartFilterInitializer.tsx',
   'src/client-v2/index.tsx',
   'src/client-v2/QuickFilterActionModel.tsx',
   'src/server/index.ts',
@@ -28,7 +29,7 @@ for (const path of required) {
 
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 assert.equal(pkg.name, '@xiezuo/plugin-quick-filter');
-assert.equal(pkg.version, '2.1.0');
+assert.equal(pkg.version, '2.2.0');
 assert.equal(pkg.author?.name, '偕作BIM');
 assert.equal(pkg.license, 'AGPL-3.0-only');
 for (const dependency of [
@@ -108,6 +109,10 @@ assert.ok(
 );
 assert.ok(v1Filter.includes('useSchemaToolbarRender'), 'V1 schema settings toolbar is not rendered');
 assert.ok(v1Filter.includes('<SortableItem'), 'V1 quick filter is not mounted as a configurable schema item');
+assert.ok(
+  v1Filter.includes('buildQuickOrSmartFilter'),
+  'V1 filter composition does not handle the smart-filter mode',
+);
 
 const v1Initializer = read('src/client/QuickFilterInitializer.tsx');
 assert.ok(
@@ -122,6 +127,20 @@ assert.ok(!v1Initializer.includes('<FormProvider'), 'V1 initializer redundantly 
 
 const v1Settings = read('src/client/quickFilterSettings.tsx');
 assert.ok(v1Settings.includes("type: 'remove'"), 'V1 remove setting is missing');
+assert.ok(
+  v1Settings.includes('fieldNames'),
+  'V1 settings do not expose the smart-filter multi-field target',
+);
+
+const v1Smart = read('src/client/SmartFilterInitializer.tsx');
+assert.ok(
+  v1Smart.includes("'x-component-props': { mode: 'multiple', allowClear: true }"),
+  'V1 smart-filter target field is not a multiple picker',
+);
+assert.ok(
+  v1Smart.includes('isTextField'),
+  'V1 smart-filter does not restrict its targets to text fields',
+);
 
 const control = read('src/shared/QuickFilterControl.tsx');
 assert.ok(control.includes("styleType === 'select'"), 'Select display mode is missing');
@@ -178,6 +197,33 @@ for (const operator of ['$includes', '$notIncludes']) {
   assert.ok(utils.includes(`'${operator}'`), `Text-filter operator is missing: ${operator}`);
 }
 
+// Smart filter: one submitted keyword scanned across several text fields.
+for (const helper of [
+  'isSmartFilter',
+  'buildSmartFilter',
+  'createSmartFilterConfig',
+  'normalizeFieldNames',
+  'defaultSmartOperator',
+  'smartOperatorOptions',
+  'smartFilterFields',
+  'resolveFilterMode',
+  'buildQuickOrSmartFilter',
+]) {
+  assert.ok(utils.includes(helper), 'Smart-filter helper is missing: ' + helper);
+}
+assert.ok(utils.includes('$or:'), 'Smart filter does not combine per-field conditions with $or');
+assert.ok(
+  utils.includes("String(operator || '') === '$eq' ? '$eq' : '$includes'"),
+  'Smart-filter operator is not restricted to contains/equals',
+);
+
+const locale = read('src/shared/locale.ts');
+assert.ok(locale.includes("'Smart filter'"), 'Smart-filter label is missing from the shared locale');
+assert.ok(
+  locale.includes("'Search selected fields'"),
+  'Smart-filter placeholder is missing from the shared locale',
+);
+
 const v2Model = read('src/client-v2/QuickFilterActionModel.tsx');
 for (const api of ['addFilterGroup', 'removeFilterGroup', 'setFilterActive', 'setPage']) {
   assert.ok(v2Model.includes(api), 'V2 resource integration is missing: ' + api);
@@ -202,6 +248,14 @@ assert.ok(
   !v2Model.includes('return () => model.detach()'),
   'V2 filter is still detached by the React effect cleanup path',
 );
+assert.ok(v2Model.includes('quick-filter-smart'), 'V2 smart-filter menu entry is missing');
+assert.ok(v2Model.includes("tExpr('Smart filter'"), 'V2 smart-filter menu label is missing');
+assert.ok(
+  v2Model.includes('buildQuickOrSmartFilter'),
+  'V2 runtime does not build smart-filter conditions',
+);
+assert.ok(v2Model.includes('smartOperatorOptions'), 'V2 smart-filter operators are missing');
+assert.ok(v2Model.includes('fieldNames'), 'V2 smart-filter multi-field target is missing');
 
 assert.equal(read('client.js').trim(), "module.exports = require('./dist/client/index.js');");
 assert.equal(read('client-v2.js').trim(), "module.exports = require('./dist/client-v2/index.js');");

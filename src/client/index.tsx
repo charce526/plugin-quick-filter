@@ -4,6 +4,7 @@ import { localeResources, NAMESPACE } from '../shared/locale';
 import { QuickFilter } from './QuickFilter';
 import { QuickFilterInitializer } from './QuickFilterInitializer';
 import { quickFilterSettings } from './quickFilterSettings';
+import { SmartFilterInitializer } from './SmartFilterInitializer';
 
 export class PluginQuickFilterClient extends Plugin {
   async load() {
@@ -15,15 +16,16 @@ export class PluginQuickFilterClient extends Plugin {
     this.app.addComponents({
       QuickFilter,
       QuickFilterInitializer,
+      SmartFilterInitializer,
     });
     this.app.schemaSettingsManager.add(quickFilterSettings);
 
     // NocoBase 2.2.x can render V2 pages inside the legacy client shell. In
     // that mode only this client entry is loaded, so register the V2 model here
     // as well. This mirrors the compatibility bridge used by built-in plugins.
-    this.app.flowEngine.registerModels({
-      QuickFilterActionModel,
-    });
+    // The model is typed against the FlowEngine copy bundled with
+    // @nocobase/client-v2, so pass it through `any` for the legacy registry.
+    this.app.flowEngine.registerModels({ QuickFilterActionModel } as any);
 
     const initializer = {
       title: "{{ t('Quick filter', { ns: '@xiezuo/plugin-quick-filter' }) }}",
@@ -36,6 +38,14 @@ export class PluginQuickFilterClient extends Plugin {
       this.app.schemaInitializerManager.get('TableActionInitializers') ||
       this.app.schemaInitializerManager.get('table:configureActions');
     tableActionInitializer?.add('customize.quickFilter', initializer);
+
+    // Smart filter is the multi-field variant: it reuses the same runtime
+    // component and settings, but its target field list is multiple.
+    const smartInitializer = {
+      title: "{{ t('Smart filter', { ns: '@xiezuo/plugin-quick-filter' }) }}",
+      Component: SmartFilterInitializer,
+    };
+    tableActionInitializer?.add('customize.smartFilter', smartInitializer);
   }
 }
 

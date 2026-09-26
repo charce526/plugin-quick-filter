@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.0 - 2026-09-26
+
+- Added the smart filter: one submitted search box whose target field is a multiple picker, so a single keyword searches several text fields at once.
+- Combined the per-field conditions with `$or`: "Contains" builds `(A contains keyword) OR (B contains keyword)`, "Equals" builds `(A equals keyword) OR (B equals keyword)`. Only these two operators are offered.
+- Restricted smart-filter targets to text interfaces (`input`, `textarea`, `email`, `phone`, `url`); a newly added smart filter starts from the first text field.
+- V2: added a "Smart filter" entry to the quick-filter submenu; Basic settings switch the target field to a multiple picker and Value settings expose only Contains/Equals.
+- V1: added a sibling "Smart filter" action-bar initializer and reused the quick-filter settings modal for the multi-field target list.
+- Widened the smart-filter search box and defaulted its placeholder to "Search selected fields".
+- Fixed the declaration build: cast the block resource through `unknown` (TS2352) and pass the hybrid-shell model registry entry as `any` (TS2322), so the model types resolve against either FlowEngine copy.
+
 ## 2.1.0 - 2026-09-18
 
 - Persisted the field selected from the V2 quick-filter submenu as initialization step parameters, so newly added filters work immediately without selecting the target field again in Basic settings.

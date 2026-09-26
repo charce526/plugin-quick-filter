@@ -20,6 +20,10 @@ The repository ships both source and the NocoBase build output (`dist`), so the 
 - Per-filter exclusive-row setting; inline filters share the left group while right-side custom actions remain pinned.
 - Option interfaces: `select`, `dictDataSingle`, `radioGroup`, `checkboxGroup`, `multipleSelect`, and `approvalStatus`.
 - Text interfaces: `input`, `textarea`, `email`, `phone`, and `url`.
+- Smart filter: one submitted search box that scans several text fields at once with the Contains or Equals operator; the fields are combined with OR.
+  - Contains: `(A contains keyword) OR (B contains keyword)`
+  - Equals: `(A equals keyword) OR (B equals keyword)`
+  - Targets are a multiple picker over text interfaces (`input`, `textarea`, `email`, `phone`, `url`); a new smart filter starts from the first text field.
 - Multiple quick filters compose with each other, the regular filter action, and the block's base data scope.
 - V1 registers the 2.2.x table action initializer (current name with a legacy fallback).
 - V2 uses a dedicated action model and resource filter groups.

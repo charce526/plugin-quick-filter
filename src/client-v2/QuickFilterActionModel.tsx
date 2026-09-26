@@ -9,19 +9,25 @@ import type {
   QuickFilterPrimitive,
 } from '../shared/types';
 import {
-  buildQuickFilter,
+  buildQuickOrSmartFilter,
   createDefaultConfig,
+  createSmartFilterConfig,
   defaultOperator,
+  defaultSmartOperator,
   getFieldInterface,
   getFieldTitle,
   hasFilterValue,
+  isSmartFilter,
   isSupportedField,
   isTextInterface,
+  normalizeFieldNames,
   normalizeQuickFilterArray,
   normalizeQuickFilterValue,
   normalizeTextFilterValue,
   operatorOptions,
   serializableOptions,
+  smartFilterFields,
+  smartOperatorOptions,
 } from '../shared/utils';
 
 type QuickFilterActionProps = Omit<QuickFilterConfig, 'style' | 'defaultValue'> & {
@@ -42,24 +48,48 @@ function getFields(ctx: any): CollectionFieldLike[] {
   return (getCollection(ctx)?.getFields?.() || []).filter(isSupportedField);
 }
 
+/** Smart filters search a keyword, so only text interfaces are offered. */
+function getTextFields(ctx: any): CollectionFieldLike[] {
+  return smartFilterFields(getFields(ctx));
+}
+
 function getField(ctx: any, name?: string): CollectionFieldLike | undefined {
   if (!name) return undefined;
   const collection = getCollection(ctx);
   return collection?.getField?.(name) || getFields(ctx).find((field) => field.name === name);
 }
 
-function QuickFilterRuntime({
-  model,
-  field,
-}: {
-  model: QuickFilterActionModel;
+interface QuickFilterTarget {
+  smart: boolean;
+  textFilter: boolean;
   field?: CollectionFieldLike;
-}) {
+  fieldInterface?: string;
+}
+
+/**
+ * `CollectionBlockModel#resource` is declared as the base resource type, while
+ * quick filters need the multi-record APIs (filter groups, paging, refresh).
+ * Cast through `unknown` so the narrower type is accepted on every 2.2.x build
+ * instead of failing TS2352 where the two declarations do not overlap.
+ */
+function getBlockResource(blockModel?: CollectionBlockModel): MultiRecordResource | undefined {
+  return blockModel?.resource as unknown as MultiRecordResource | undefined;
+}
+
+function resolveTarget(ctx: any, config: QuickFilterActionProps): QuickFilterTarget {
+  const smart = isSmartFilter(config);
+  const field = smart ? undefined : getField(ctx, config.fieldName);
+  const fieldInterface = smart ? undefined : getFieldInterface(field) || config.fieldInterface;
+  return { smart, textFilter: smart || isTextInterface(fieldInterface), field, fieldInterface };
+}
+
+function QuickFilterRuntime({ model }: { model: QuickFilterActionModel }) {
   const config = model.getQuickFilterConfig();
-  const fieldInterface = getFieldInterface(field) || config.fieldInterface;
-  const textFilter = isTextInterface(fieldInterface);
+  const { smart, textFilter, field, fieldInterface } = resolveTarget(model.context, config);
   const configKey = JSON.stringify({
-    fieldName: config.fieldName,
+    mode: config.mode,
+    fieldName: smart ? undefined : config.fieldName,
+    fieldNames: smart ? config.fieldNames : undefined,
     defaultValue: config.defaultValue,
     operator: config.operator,
     candidateValues: config.candidateValues,
@@ -83,10 +113,14 @@ function QuickFilterRuntime({
     model.applyValue(nextValue);
   };
 
+  const title = smart
+    ? model.context.t(config.fieldTitle || 'Smart filter', { ns: NAMESPACE })
+    : model.context.t(config.fieldTitle || getFieldTitle(field) || config.fieldName, {
+        ns: NAMESPACE,
+      });
+
   const commonProps = {
-    title: model.context.t(config.fieldTitle || getFieldTitle(field) || config.fieldName, {
-      ns: NAMESPACE,
-    }),
+    title,
     showTitle: config.showTitle !== false,
     tooltip: config.tooltip,
     value,
@@ -96,8 +130,12 @@ function QuickFilterRuntime({
   return textFilter ? (
     <QuickTextFilterControl
       {...commonProps}
-      placeholder={config.placeholder || model.context.t('Enter keyword', { ns: NAMESPACE })}
+      placeholder={
+        config.placeholder ||
+        model.context.t(smart ? 'Search selected fields' : 'Enter keyword', { ns: NAMESPACE })
+      }
       searchText={model.context.t('Search', { ns: NAMESPACE })}
+      inputWidth={smart ? 320 : undefined}
       onSearch={change}
     />
   ) : (
@@ -142,15 +180,34 @@ export class QuickFilterActionModel extends ActionModel {
   private hasCurrentValue = false;
   private defaultValueApplied = false;
 
+  private static hasTarget(config?: QuickFilterActionProps): boolean {
+    return Boolean(config?.fieldName) || Boolean(config?.fieldNames?.length);
+  }
+
   getQuickFilterConfig(): QuickFilterActionProps {
     const initialConfig = this.getStepParams('quickFilterInit', 'field') as
       | QuickFilterActionProps
       | undefined;
-    if (this.props.fieldName || !initialConfig?.fieldName) return this.props;
+    // Once the model carries its own target (single field or smart-filter field
+    // list) the persisted props win; the initialization parameters are only a
+    // fallback for models whose props were not kept by the page shell.
+    if (QuickFilterActionModel.hasTarget(this.props)) return this.props;
+    if (!QuickFilterActionModel.hasTarget(initialConfig)) return this.props;
     return {
       ...this.props,
       ...initialConfig,
     };
+  }
+
+  private normalizeForMode(
+    config: QuickFilterActionProps,
+    value: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined,
+    textFilter: boolean,
+  ) {
+    const multiple = !textFilter && (config.style === 'multiButton' || Boolean(config.multiple));
+    return textFilter
+      ? normalizeTextFilterValue(value)
+      : normalizeQuickFilterValue(value, multiple);
   }
 
   getCurrentValue() {
@@ -163,13 +220,8 @@ export class QuickFilterActionModel extends ActionModel {
     this.defaultValueApplied = true;
 
     const config = this.getQuickFilterConfig();
-    const field = getField(this.context, config.fieldName);
-    const fieldInterface = getFieldInterface(field) || config.fieldInterface;
-    const textFilter = isTextInterface(fieldInterface);
-    const multiple = !textFilter && (config.style === 'multiButton' || Boolean(config.multiple));
-    const defaultValue = textFilter
-      ? normalizeTextFilterValue(config.defaultValue)
-      : normalizeQuickFilterValue(config.defaultValue, multiple);
+    const { textFilter } = resolveTarget(this.context, config);
+    const defaultValue = this.normalizeForMode(config, config.defaultValue, textFilter);
     this.currentValue = defaultValue;
     this.hasCurrentValue = true;
     if (hasFilterValue(defaultValue)) this.applyValue(defaultValue);
@@ -177,21 +229,16 @@ export class QuickFilterActionModel extends ActionModel {
 
   applyValue(value: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined) {
     const config = this.getQuickFilterConfig();
-    const field = getField(this.context, config.fieldName);
-    const fieldInterface = getFieldInterface(field) || config.fieldInterface;
-    const textFilter = isTextInterface(fieldInterface);
-    const multiple = !textFilter && (config.style === 'multiButton' || Boolean(config.multiple));
-    const normalizedValue = textFilter
-      ? normalizeTextFilterValue(value)
-      : normalizeQuickFilterValue(value, multiple);
+    const { textFilter, fieldInterface } = resolveTarget(this.context, config);
+    const normalizedValue = this.normalizeForMode(config, value, textFilter);
     this.currentValue = normalizedValue;
     this.hasCurrentValue = true;
 
     const blockModel = this.context.blockModel as CollectionBlockModel;
-    const resource = blockModel?.resource as MultiRecordResource;
+    const resource = getBlockResource(blockModel);
     if (!blockModel || !resource) return;
 
-    const filter = buildQuickFilter(config, normalizedValue, fieldInterface);
+    const filter = buildQuickOrSmartFilter(config, normalizedValue, fieldInterface);
     const active = hasFilterValue(normalizedValue) && Boolean(filter);
 
     blockModel.setFilterActive(this.uid, active);
@@ -215,7 +262,7 @@ export class QuickFilterActionModel extends ActionModel {
 
   detach() {
     const blockModel = this.context.blockModel as CollectionBlockModel;
-    const resource = blockModel?.resource as MultiRecordResource;
+    const resource = getBlockResource(blockModel);
     blockModel?.setFilterActive?.(this.uid, false);
     resource?.removeFilterGroup?.(this.uid);
   }
@@ -227,17 +274,42 @@ export class QuickFilterActionModel extends ActionModel {
   }
 
   render() {
-    const config = this.getQuickFilterConfig();
-    const field = getField(this.context, config.fieldName);
-    return <QuickFilterRuntime model={this} field={field} />;
+    return <QuickFilterRuntime model={this} />;
   }
+}
+
+function smartFilterMenuItems(ctx: any) {
+  const textFields = getTextFields(ctx);
+  if (!textFields.length) return [];
+  const initialConfig: QuickFilterActionProps = {
+    ...(createSmartFilterConfig([String(textFields[0].name || '')]) as QuickFilterActionProps),
+    type: 'default',
+    position: 'left',
+  };
+  return [
+    {
+      key: 'quick-filter-smart',
+      label: tExpr('Smart filter', { ns: NAMESPACE }),
+      useModel: 'QuickFilterActionModel',
+      createModelOptions: () => ({
+        use: 'QuickFilterActionModel',
+        props: { ...initialConfig },
+        stepParams: {
+          quickFilterInit: {
+            field: { ...initialConfig },
+          },
+        },
+      }),
+    },
+  ];
 }
 
 QuickFilterActionModel.define({
   label: tExpr('Quick filter', { ns: NAMESPACE }),
   sort: 6,
-  children: async (ctx) =>
-    getFields(ctx).map((field) => {
+  children: async (ctx) => [
+    ...smartFilterMenuItems(ctx),
+    ...getFields(ctx).map((field) => {
       const initialConfig: QuickFilterActionProps = {
         ...createDefaultConfig(field),
         position: 'left',
@@ -257,6 +329,7 @@ QuickFilterActionModel.define({
         }),
       };
     }),
+  ],
 });
 
 QuickFilterActionModel.registerFlow({
@@ -266,6 +339,45 @@ QuickFilterActionModel.registerFlow({
     basic: {
       title: tExpr('Basic settings', { ns: NAMESPACE }),
       uiSchema(ctx) {
+        const config = ctx.model.getQuickFilterConfig();
+        // Smart filters target several fields at once, so the single-field
+        // picker is replaced by a multiple text-field picker.
+        if (isSmartFilter(config)) {
+          return {
+            fieldNames: {
+              type: 'array',
+              title: tExpr('Target field', { ns: NAMESPACE }),
+              required: true,
+              enum: getTextFields(ctx).map((field) => ({
+                label: getFieldTitle(field),
+                value: field.name,
+              })),
+              'x-decorator': 'FormItem',
+              'x-component': 'Select',
+              'x-component-props': { mode: 'multiple', allowClear: true },
+            },
+            fieldTitle: {
+              title: tExpr('Field title', { ns: NAMESPACE }),
+              'x-decorator': 'FormItem',
+              'x-component': 'Input',
+            },
+            showTitle: {
+              title: tExpr('Show title', { ns: NAMESPACE }),
+              'x-decorator': 'FormItem',
+              'x-component': 'Checkbox',
+            },
+            tooltip: {
+              title: tExpr('Tooltip', { ns: NAMESPACE }),
+              'x-decorator': 'FormItem',
+              'x-component': 'Input.TextArea',
+            },
+            fullRow: {
+              title: tExpr('Exclusive row', { ns: NAMESPACE }),
+              'x-decorator': 'FormItem',
+              'x-component': 'Checkbox',
+            },
+          };
+        }
         const fields = getFields(ctx);
         return {
           fieldName: {
@@ -301,6 +413,7 @@ QuickFilterActionModel.registerFlow({
         const config = ctx.model.getQuickFilterConfig();
         return {
           fieldName: config.fieldName,
+          fieldNames: normalizeFieldNames(config.fieldNames),
           fieldTitle: config.fieldTitle,
           showTitle: config.showTitle !== false,
           tooltip: config.tooltip,
@@ -309,6 +422,25 @@ QuickFilterActionModel.registerFlow({
       },
       handler(ctx, params) {
         const config = ctx.model.getQuickFilterConfig();
+        if (isSmartFilter(config)) {
+          const previous = normalizeFieldNames(config.fieldNames).join(',');
+          const nextFieldNames = normalizeFieldNames(params.fieldNames);
+          const changed = previous !== nextFieldNames.join(',');
+          ctx.model.setProps({
+            mode: 'smart',
+            fieldName: '',
+            fieldNames: nextFieldNames,
+            fieldInterface: undefined,
+            fieldTitle: params.fieldTitle || '',
+            showTitle: params.showTitle !== false,
+            tooltip: params.tooltip,
+            fullRow: Boolean(params.fullRow),
+          });
+          // Re-run the current keyword against the new field set when nothing
+          // was typed yet; otherwise wait for the next submitted search.
+          if (changed) ctx.model.applyValue(ctx.model.getCurrentValue());
+          return;
+        }
         const previous = config.fieldName;
         const field = getField(ctx, params.fieldName);
         const changed = previous !== params.fieldName;
@@ -338,8 +470,8 @@ QuickFilterActionModel.registerFlow({
       title: tExpr('Display settings', { ns: NAMESPACE }),
       uiSchema(ctx) {
         const config = ctx.model.getQuickFilterConfig();
-        const field = getField(ctx, config.fieldName);
-        if (isTextInterface(getFieldInterface(field) || config.fieldInterface)) {
+        const { textFilter } = resolveTarget(ctx, config);
+        if (textFilter) {
           return {
             placeholder: {
               title: tExpr('Placeholder', { ns: NAMESPACE }),
@@ -368,8 +500,8 @@ QuickFilterActionModel.registerFlow({
       },
       defaultParams(ctx) {
         const config = ctx.model.getQuickFilterConfig();
-        const field = getField(ctx, config.fieldName);
-        if (isTextInterface(getFieldInterface(field) || config.fieldInterface)) {
+        const { textFilter } = resolveTarget(ctx, config);
+        if (textFilter) {
           return { placeholder: config.placeholder };
         }
         return {
@@ -398,6 +530,24 @@ QuickFilterActionModel.registerFlow({
       title: tExpr('Value settings', { ns: NAMESPACE }),
       uiSchema(ctx) {
         const config = ctx.model.getQuickFilterConfig();
+        if (isSmartFilter(config)) {
+          return {
+            operator: {
+              title: tExpr('Operator', { ns: NAMESPACE }),
+              enum: smartOperatorOptions().map((item) => ({
+                value: item.value,
+                label: tExpr(item.label, { ns: NAMESPACE }),
+              })),
+              'x-decorator': 'FormItem',
+              'x-component': 'Select',
+            },
+            defaultValue: {
+              title: tExpr('Default value', { ns: NAMESPACE }),
+              'x-decorator': 'FormItem',
+              'x-component': 'Input',
+            },
+          };
+        }
         const field = getField(ctx, config.fieldName);
         const fieldInterface = getFieldInterface(field) || config.fieldInterface;
         const textFilter = isTextInterface(fieldInterface);
@@ -440,6 +590,13 @@ QuickFilterActionModel.registerFlow({
       },
       defaultParams(ctx) {
         const config = ctx.model.getQuickFilterConfig();
+        if (isSmartFilter(config)) {
+          return {
+            operator: defaultSmartOperator(config.operator),
+            candidateValues: undefined,
+            defaultValue: normalizeTextFilterValue(config.defaultValue),
+          };
+        }
         const field = getField(ctx, config.fieldName);
         const fieldInterface = getFieldInterface(field) || config.fieldInterface;
         const textFilter = isTextInterface(fieldInterface);
@@ -456,6 +613,16 @@ QuickFilterActionModel.registerFlow({
       },
       handler(ctx, params) {
         const config = ctx.model.getQuickFilterConfig();
+        if (isSmartFilter(config)) {
+          const defaultValue = normalizeTextFilterValue(params.defaultValue);
+          ctx.model.setProps({
+            operator: defaultSmartOperator(params.operator),
+            candidateValues: undefined,
+            defaultValue,
+          });
+          ctx.model.applyValue(defaultValue);
+          return;
+        }
         const field = getField(ctx, config.fieldName);
         const fieldInterface = getFieldInterface(field) || config.fieldInterface;
         const textFilter = isTextInterface(fieldInterface);

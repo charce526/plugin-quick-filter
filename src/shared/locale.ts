@@ -4,6 +4,8 @@ export const localeResources: Record<string, Record<string, string>> = {
   'zh-CN': {
     'Quick filter': '快捷筛选',
     'Quick filter settings': '快捷筛选设置',
+    'Smart filter': '智能筛选',
+    'Search selected fields': '搜索所选字段',
     'Target field': '目标字段',
     'Field title': '字段标题',
     'Show title': '显示标题',
@@ -39,6 +41,8 @@ export const localeResources: Record<string, Record<string, string>> = {
   'en-US': {
     'Quick filter': 'Quick filter',
     'Quick filter settings': 'Quick filter settings',
+    'Smart filter': 'Smart filter',
+    'Search selected fields': 'Search selected fields',
     'Target field': 'Target field',
     'Field title': 'Field title',
     'Show title': 'Show title',

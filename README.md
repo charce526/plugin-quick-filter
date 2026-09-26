@@ -22,6 +22,10 @@
 - 每个快捷筛选可单独配置“独占一行”；未勾选时与其他快捷筛选横向排列，右侧自定义操作保持固定。
 - 选项字段支持 `select`、`dictDataSingle`、`radioGroup`、`checkboxGroup`、`multipleSelect`、`approvalStatus`。
 - 文本搜索支持 `input`、`textarea`、`email`、`phone`、`url` 字段接口。
+- 智能筛选：一个搜索框同时搜索多个文本字段，运算符为「包含」或「等于」，字段之间为「或」关系。
+  - 包含：`(字段A 包含 关键词) 或 (字段B 包含 关键词)`
+  - 等于：`(字段A 等于 关键词) 或 (字段B 等于 关键词)`
+  - 目标字段为文本字段多选（`input`、`textarea`、`email`、`phone`、`url`），新建时默认选中第一个文本字段。
 - 多个快捷筛选可同时使用，并与普通筛选及区块数据范围合并。
 - 选择“全部”或清空选择时，只移除当前快捷筛选，不影响其他筛选条件。
 - V2 手动加载模式下遵循 NocoBase 原生筛选动作的数据清空行为。
@@ -48,12 +52,16 @@ git clone https://github.com/charce526/plugin-quick-filter.git \
 
 插件注册 V1 表格操作初始化器：优先现行名 `TableActionInitializers`，回退旧名 `table:configureActions`（二者在 2.2.x 内互为同步别名），避免重复注册相同的菜单项。
 
+5. 需要多字段搜索时选择“智能筛选”，在弹出框中多选目标字段（文本字段）、设置标题与运算符（包含/等于）后插入。
+6. 智能筛选插入后复用同一套设置菜单：目标字段为多选，运算符仅提供“包含”与“等于”。
+
 ### V2 页面
 
 1. 开启 UI 配置模式。
 2. 在表格操作区添加操作。
-3. 展开“快捷筛选”，直接选择目标字段。
+3. 展开“快捷筛选”，直接选择目标字段；需要多字段搜索时选择“智能筛选”。
 4. 添加后即可直接使用，无需在基本设置中重复选择目标字段；如需调整，可继续配置独占一行、显示设置及值与运算符。
+5. 智能筛选的“基本设置”中目标字段为多选（仅文本字段），“值与运算符”中运算符为“包含”或“等于”；多字段之间为「或」。
 
 V2 使用独立的 `QuickFilterActionModel`，通过区块资源的筛选组 API 与原生筛选共同工作。
 
@@ -82,3 +90,20 @@ node scripts/verify-source.mjs
 ## 作者
 
 偕作BIM · [xzbim.cn](https://www.xzbim.cn)
+
+## 致谢与开源说明
+
+感谢有巢数智公开分享「快速筛选」插件说明。本插件由 AI 辅助编写，在最初的需求梳理与交互设计中参考并学习了该说明文档。
+
+- [有巢数智的「快速筛选」插件说明](https://docs.youchaoyun.com/cn/infrastructure/plugin_extension/quick_filter/)
+- [有巢数智官网](https://www.youchaoyun.com/)
+
+本插件基于 [NocoBase](https://www.nocobase.com/) 开源平台进行扩展开发，感谢 NocoBase 社区及贡献者提供的基础能力。
+
+- [NocoBase 官网](https://www.nocobase.com/)
+- [NocoBase 官方文档](https://docs.nocobase.com/)
+- [NocoBase GitHub 仓库](https://github.com/nocobase/nocobase)
+
+本插件以 [AGPL-3.0-only](LICENSE) 许可证开源发布。使用、复制、修改及再发布时，请遵守该许可证的相关要求。
+
+- [本插件 GitHub 仓库](https://github.com/charce526/plugin-quick-filter)

@@ -50,6 +50,22 @@ V2 添加菜单中的字段选择会同时写入模型 `props` 和内部初始�
 
 每个配置通过 `fullRow` 独立决定是否占满操作栏左侧一行。未启用时多个快捷筛选可以同行排列；布局层始终保护右侧操作组不收缩、不被快捷筛选挤到下一行。
 
+## 智能筛选（多字段搜索）
+
+配置层用 `mode: 'smart'` 区分：单字段筛选用 `fieldName`，智能筛选用 `fieldNames` 数组，其余配置（标题、提示、独占一行、默认值、运算符）复用同一份结构，因此两套适配层只需在“目标字段”与“运算符”两处分流。
+
+目标字段限定为文本接口（`input`、`textarea`、`email`、`phone`、`url`），因为控件始终提交关键词，运算符也只有文本语义。共享层提供 `isSmartFilter`、`normalizeFieldNames`、`smartFilterFields`、`defaultSmartOperator`、`smartOperatorOptions` 与 `buildSmartFilter`；`buildQuickOrSmartFilter` 按模式分派，两个适配层都调用它。
+
+筛选条件按字段拆成多条再用 `$or` 合并：
+
+```json
+{ "$or": [ { "A": { "$includes": "abc" } }, { "B": { "$includes": "abc" } } ] }
+```
+
+运算符只有 `$includes`（包含）与 `$eq`（等于），`defaultSmartOperator` 会把其它值兜底成 `$includes`。关键词仍需点击搜索或按 Enter 提交，空白关键词移除整个筛选组。
+
+V2 在「快捷筛选」子菜单首位插入 `quick-filter-smart`，与字段项共用 `QuickFilterActionModel`；`getQuickFilterConfig` 改为按“是否已有目标（单字段或字段数组）”判断，避免初始化参数覆盖用户后来修改的字段列表。V1 新增 `SmartFilterInitializer` 作为操作栏同级菜单项，运行时与设置仍复用 `QuickFilter` 和 `actionSettings:quickFilter`。
+
 ## 配置持久化
 
 V1 配置写入 UI Schema 的 `x-component-props`；V2 配置写入 FlowModel props。选项快照只作为字段提供者暂不可用时的回退，运行时优先读取字段的实时选项。旧配置没有 `fullRow` 时按未勾选处理。
