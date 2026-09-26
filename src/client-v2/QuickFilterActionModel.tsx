@@ -1,4 +1,4 @@
-import { MultiRecordResource, tExpr } from '@nocobase/flow-engine';
+import { DragHandler, Droppable, MultiRecordResource, tExpr } from '@nocobase/flow-engine';
 import { ActionModel, CollectionActionGroupModel, CollectionBlockModel } from '@nocobase/client-v2';
 import React, { useEffect, useState } from 'react';
 import { QuickFilterControl, QuickTextFilterControl } from '../shared/QuickFilterControl';
@@ -277,9 +277,53 @@ export class QuickFilterActionModel extends ActionModel {
     return destroyed;
   }
 
+  /**
+   * NocoBase only wraps actions rendered on the RIGHT of a collection block's
+   * action bar with `Droppable` (see `TableBlockModel#renderComponent`).
+   * Quick filters stay on the left, so they register their own drop target
+   * here and still take part in the block's native `DndProvider`: dropping one
+   * quick filter onto another calls `flowEngine.moveModel(active.uid,
+   * over.uid)` and rewrites the shared `sortIndex` of the action group.
+   */
   render() {
-    return <QuickFilterRuntime model={this} />;
+    return (
+      // `this` is typed against the FlowModel copy bundled with
+      // @nocobase/client-v2, which does not overlap the one `Droppable`
+      // expects (TS2322 on the private brand), so widen it here.
+      <Droppable model={this as any}>
+        <QuickFilterRuntime model={this} />
+      </Droppable>
+    );
   }
+}
+
+export function isQuickFilterActionModel(model: any): boolean {
+  if (!model) return false;
+  // `use` is the model name kept on every FlowModel instance, so the check
+  // still matches when the class was loaded through a different bundle copy
+  // (NocoBase 2.2.x can host V2 pages inside the legacy client shell).
+  return model instanceof QuickFilterActionModel || model.use === 'QuickFilterActionModel';
+}
+
+/**
+ * Adds the native drag handle to the quick-filter float toolbar.
+ *
+ * NocoBase passes `{ key: 'drag-handler', component: DragHandler, sort: 1 }`
+ * as an `extraToolbarItem` for every action rendered on the right of a
+ * collection block's action bar. Quick filters render on the left
+ * (`position: 'left'`) and therefore get no handle from the block, so the
+ * official `flowSettings.addToolbarItem` extension point is used instead.
+ * The `visible` guard is the exact complement of the block's branch: the
+ * handle is added only for quick filters that the block did not handle, which
+ * keeps a single handle when a filter is moved to the right group.
+ */
+export function registerQuickFilterDragHandler(flowEngine: any) {
+  flowEngine?.flowSettings?.addToolbarItem({
+    key: 'quick-filter-drag-handler',
+    component: DragHandler as any,
+    sort: 1,
+    visible: (model: any) => isQuickFilterActionModel(model) && model.props?.position === 'left',
+  });
 }
 
 function smartFilterMenuItems(ctx: any) {

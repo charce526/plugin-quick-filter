@@ -1,5 +1,5 @@
 import { Plugin } from '@nocobase/client';
-import { QuickFilterActionModel } from '../client-v2/QuickFilterActionModel';
+import { QuickFilterActionModel, registerQuickFilterDragHandler } from '../client-v2/QuickFilterActionModel';
 import { localeResources, NAMESPACE } from '../shared/locale';
 import { QuickFilter } from './QuickFilter';
 import { QuickFilterInitializer } from './QuickFilterInitializer';
@@ -26,6 +26,9 @@ export class PluginQuickFilterClient extends Plugin {
     // The model is typed against the FlowEngine copy bundled with
     // @nocobase/client-v2, so pass it through `any` for the legacy registry.
     this.app.flowEngine.registerModels({ QuickFilterActionModel } as any);
+    // Same bridge as the model registry: V2 pages hosted by the hybrid shell
+    // also need the quick-filter drag handle to be reordered.
+    registerQuickFilterDragHandler(this.app.flowEngine);
 
     const initializer = {
       title: "{{ t('Quick filter', { ns: '@xiezuo/plugin-quick-filter' }) }}",

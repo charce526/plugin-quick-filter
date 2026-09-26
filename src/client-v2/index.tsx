@@ -1,6 +1,6 @@
 import { Plugin } from '@nocobase/client-v2';
 import { localeResources, NAMESPACE } from '../shared/locale';
-import { QuickFilterActionModel } from './QuickFilterActionModel';
+import { QuickFilterActionModel, registerQuickFilterDragHandler } from './QuickFilterActionModel';
 
 export class PluginQuickFilterClientV2 extends Plugin {
   async load() {
@@ -15,6 +15,11 @@ export class PluginQuickFilterClientV2 extends Plugin {
     this.app.flowEngine.registerModels({
       QuickFilterActionModel,
     });
+
+    // Native drag-sort: the block already provides the `DndProvider`, and the
+    // model provides its own drop target, so the only missing piece is the
+    // drag handle on the quick-filter toolbar.
+    registerQuickFilterDragHandler(this.app.flowEngine);
   }
 }
 

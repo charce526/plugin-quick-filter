@@ -29,7 +29,7 @@ for (const path of required) {
 
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 assert.equal(pkg.name, '@xiezuo/plugin-quick-filter');
-assert.equal(pkg.version, '2.2.0');
+assert.equal(pkg.version, '2.3.0');
 assert.equal(pkg.author?.name, '偕作BIM');
 assert.equal(pkg.license, 'AGPL-3.0-only');
 for (const dependency of [
@@ -99,6 +99,10 @@ assert.ok(
   v1Entry.includes('this.app.flowEngine.registerModels'),
   'Hybrid-shell V2 model is not registered from the legacy client entry',
 );
+assert.ok(
+  v1Entry.includes('registerQuickFilterDragHandler'),
+  'Hybrid-shell V2 drag handle is not registered from the legacy client entry',
+);
 
 const v1Filter = read('src/client/QuickFilter.tsx');
 assert.ok(v1Filter.includes('mergeFilter'), 'V1 filter composition is missing');
@@ -112,6 +116,12 @@ assert.ok(v1Filter.includes('<SortableItem'), 'V1 quick filter is not mounted as
 assert.ok(
   v1Filter.includes('buildQuickOrSmartFilter'),
   'V1 filter composition does not handle the smart-filter mode',
+);
+// Native V1 drag-sort: the schema item plus the draggable schema toolbar are
+// what DndContext#onDragEnd reorders through `insertBeforeBeginOrAfterEnd`.
+assert.ok(
+  v1Filter.includes('renderToolbar({ draggable: true })'),
+  'V1 quick filter does not render the native draggable schema toolbar',
 );
 
 const v1Initializer = read('src/client/QuickFilterInitializer.tsx');
@@ -273,6 +283,35 @@ assert.ok(
 );
 assert.ok(v2Model.includes('smartOperatorOptions'), 'V2 smart-filter operators are missing');
 assert.ok(v2Model.includes('fieldNames'), 'V2 smart-filter multi-field target is missing');
+
+// Native V2 drag-sort. NocoBase only wraps actions rendered on the RIGHT of a
+// collection block's action bar with `Droppable` and only gives them the
+// toolbar `DragHandler`. Quick filters stay on the left, so the model has to
+// supply the drop target and the handle itself; the drop still runs through
+// the block's `DndProvider` -> `flowEngine.moveModel` -> `sortIndex`.
+assert.ok(v2Model.includes('<Droppable'), 'V2 quick filter does not register a native drop target');
+assert.ok(v2Model.includes('registerQuickFilterDragHandler'), 'V2 drag-handle registration helper is missing');
+assert.ok(
+  v2Model.includes('flowSettings.addToolbarItem'),
+  'V2 drag handle is not registered through the official toolbar-item extension point',
+);
+assert.ok(v2Model.includes('component: DragHandler'), 'V2 drag handle does not reuse the native DragHandler');
+assert.ok(v2Model.includes('isQuickFilterActionModel'), 'V2 drag-handle visibility guard is missing');
+assert.ok(
+  v2Model.includes("model.use === 'QuickFilterActionModel'"),
+  'V2 drag-handle guard does not survive a duplicate model-class copy',
+);
+assert.ok(
+  v2Model.includes("model.props?.position === 'left'"),
+  'V2 drag handle is not kept complementary to the block right-group branch',
+);
+
+const v2Entry = read('src/client-v2/index.tsx');
+assert.ok(v2Entry.includes('QuickFilterActionModel'), 'V2 entry does not register the quick-filter action model');
+assert.ok(
+  v2Entry.includes('registerQuickFilterDragHandler(this.app.flowEngine)'),
+  'V2 entry does not register the quick-filter drag handle',
+);
 
 // The display step must branch on the resolved mode, not on the raw field
 // interface, otherwise a smart filter has no interface and its placeholder
