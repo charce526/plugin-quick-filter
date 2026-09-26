@@ -511,12 +511,16 @@ QuickFilterActionModel.registerFlow({
       },
       handler(ctx, params) {
         const config = ctx.model.getQuickFilterConfig();
-        const field = getField(ctx, config.fieldName);
-        const fieldInterface = getFieldInterface(field) || config.fieldInterface;
-        if (isTextInterface(fieldInterface)) {
+        // Smart filters have no `fieldInterface`, so the branch must follow the
+        // resolved mode (`resolveTarget`) exactly like the schema above,
+        // otherwise the placeholder is written to the style/multiple branch and
+        // the search box keeps its default hint.
+        const { textFilter } = resolveTarget(ctx, config);
+        if (textFilter) {
           ctx.model.setProps({ placeholder: params.placeholder });
           return;
         }
+        const field = getField(ctx, config.fieldName);
         const multiple = params.style === 'multiButton' || Boolean(params.multiple);
         ctx.model.setProps({
           style: params.style || 'select',

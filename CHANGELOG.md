@@ -9,6 +9,7 @@
 - V1: added a sibling "Smart filter" action-bar initializer and reused the quick-filter settings modal for the multi-field target list.
 - Widened the smart-filter search box and defaulted its placeholder to "Search selected fields".
 - Fixed the declaration build: cast the block resource through `unknown` (TS2352) and pass the hybrid-shell model registry entry as `any` (TS2322), so the model types resolve against either FlowEngine copy.
+- Fixed the smart-filter placeholder: the V2 display step now branches on the resolved mode instead of the field interface, so “Placeholder” overrides the default “Search selected fields” hint.
 
 ## 2.1.0 - 2026-09-18
 

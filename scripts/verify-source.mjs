@@ -257,6 +257,19 @@ assert.ok(
 assert.ok(v2Model.includes('smartOperatorOptions'), 'V2 smart-filter operators are missing');
 assert.ok(v2Model.includes('fieldNames'), 'V2 smart-filter multi-field target is missing');
 
+// The display step must branch on the resolved mode, not on the raw field
+// interface, otherwise a smart filter has no interface and its placeholder
+// never reaches the search box.
+const displayStep = v2Model.slice(v2Model.indexOf('display: {'), v2Model.indexOf('values: {'));
+assert.ok(
+  displayStep.includes('resolveTarget(ctx, config)'),
+  'V2 display step does not resolve the smart-filter mode',
+);
+assert.ok(
+  !displayStep.includes('const fieldInterface = getFieldInterface(field) || config.fieldInterface;'),
+  'V2 display handler still branches on the raw field interface',
+);
+
 assert.equal(read('client.js').trim(), "module.exports = require('./dist/client/index.js');");
 assert.equal(read('client-v2.js').trim(), "module.exports = require('./dist/client-v2/index.js');");
 assert.equal(read('server.js').trim(), "module.exports = require('./dist/server/index.js');");
