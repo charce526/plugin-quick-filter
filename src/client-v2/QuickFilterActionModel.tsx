@@ -14,6 +14,8 @@ import {
   createSmartFilterConfig,
   defaultOperator,
   defaultSmartOperator,
+  MAX_INPUT_WIDTH,
+  MIN_INPUT_WIDTH,
   getFieldInterface,
   getFieldTitle,
   hasFilterValue,
@@ -21,11 +23,13 @@ import {
   isSupportedField,
   isTextInterface,
   normalizeFieldNames,
+  normalizeInputWidth,
   normalizeQuickFilterArray,
   normalizeQuickFilterValue,
   normalizeTextFilterValue,
   operatorOptions,
   serializableOptions,
+  smartInputWidth,
   smartFilterFields,
   smartOperatorOptions,
 } from '../shared/utils';
@@ -135,7 +139,7 @@ function QuickFilterRuntime({ model }: { model: QuickFilterActionModel }) {
         model.context.t(smart ? 'Search selected fields' : 'Enter keyword', { ns: NAMESPACE })
       }
       searchText={model.context.t('Search', { ns: NAMESPACE })}
-      inputWidth={smart ? 320 : undefined}
+      inputWidth={smartInputWidth(config)}
       onSearch={change}
     />
   ) : (
@@ -478,6 +482,19 @@ QuickFilterActionModel.registerFlow({
               'x-decorator': 'FormItem',
               'x-component': 'Input',
             },
+            inputWidth: {
+              title: tExpr('Input width', { ns: NAMESPACE }),
+              'x-decorator': 'FormItem',
+              // `NumberPicker` is registered by the flow-engine settings
+              // renderer; the legacy V1 client only provides `InputNumber`.
+              'x-component': 'NumberPicker',
+              'x-component-props': {
+                min: MIN_INPUT_WIDTH,
+                max: MAX_INPUT_WIDTH,
+                step: 10,
+                addonAfter: 'px',
+              },
+            },
           };
         }
         return {
@@ -502,7 +519,7 @@ QuickFilterActionModel.registerFlow({
         const config = ctx.model.getQuickFilterConfig();
         const { textFilter } = resolveTarget(ctx, config);
         if (textFilter) {
-          return { placeholder: config.placeholder };
+          return { placeholder: config.placeholder, inputWidth: smartInputWidth(config) };
         }
         return {
           style: config.style || 'select',
@@ -517,7 +534,10 @@ QuickFilterActionModel.registerFlow({
         // the search box keeps its default hint.
         const { textFilter } = resolveTarget(ctx, config);
         if (textFilter) {
-          ctx.model.setProps({ placeholder: params.placeholder });
+          ctx.model.setProps({
+            placeholder: params.placeholder,
+            inputWidth: normalizeInputWidth(params.inputWidth, smartInputWidth(config)),
+          });
           return;
         }
         const field = getField(ctx, config.fieldName);

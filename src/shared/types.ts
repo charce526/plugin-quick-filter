@@ -39,6 +39,8 @@ export interface QuickFilterConfig {
   tooltip?: string;
   fullRow?: boolean;
   placeholder?: string;
+  /** Width of the submitted search box in pixels. */
+  inputWidth?: number;
   defaultValue?: QuickFilterPrimitive | QuickFilterPrimitive[];
   multiple?: boolean;
   style?: QuickFilterStyle;

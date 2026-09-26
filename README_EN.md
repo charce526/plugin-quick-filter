@@ -24,6 +24,7 @@ The repository ships both source and the NocoBase build output (`dist`), so the 
   - Contains: `(A contains keyword) OR (B contains keyword)`
   - Equals: `(A equals keyword) OR (B equals keyword)`
   - Targets are a multiple picker over text interfaces (`input`, `textarea`, `email`, `phone`, `url`); a new smart filter starts from the first text field.
+- Search-box width is configurable under Display settings → Input width (120–800 px; defaults are 280 for a single-field filter and 320 for a smart filter). The value lives in the page schema / model props.
 - Multiple quick filters compose with each other, the regular filter action, and the block's base data scope.
 - V1 registers the 2.2.x table action initializer (current name with a legacy fallback).
 - V2 uses a dedicated action model and resource filter groups.

@@ -10,6 +10,7 @@
 - Widened the smart-filter search box and defaulted its placeholder to "Search selected fields".
 - Fixed the declaration build: cast the block resource through `unknown` (TS2352) and pass the hybrid-shell model registry entry as `any` (TS2322), so the model types resolve against either FlowEngine copy.
 - Fixed the smart-filter placeholder: the V2 display step now branches on the resolved mode instead of the field interface, so “Placeholder” overrides the default “Search selected fields” hint.
+- Made the search-box width configurable: “Input width” (120–800 px) was added to Display settings for text and smart filters in both V1 and V2. It replaces the hardcoded 280 px and is stored with the rest of the filter config (page schema / model props), so no server collection is involved.
 
 ## 2.1.0 - 2026-09-18
 

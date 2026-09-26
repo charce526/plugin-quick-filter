@@ -19,6 +19,7 @@ import {
   hasFilterValue,
   isSmartFilter,
   resolveFilterMode,
+  smartInputWidth,
 } from '../shared/utils';
 import { useQuickFilterTranslation } from './locale';
 
@@ -129,7 +130,7 @@ export function QuickFilter() {
           }
           searchText={t('Search')}
           fullRow={config.fullRow}
-          inputWidth={smart ? 320 : undefined}
+          inputWidth={smartInputWidth(config)}
           onSearch={handleChange}
         />
       ) : (

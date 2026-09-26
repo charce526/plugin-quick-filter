@@ -131,6 +131,10 @@ assert.ok(
   v1Settings.includes('fieldNames'),
   'V1 settings do not expose the smart-filter multi-field target',
 );
+assert.ok(
+  v1Settings.includes("'x-component': 'InputNumber'"),
+  'V1 settings do not expose the configurable input width',
+);
 
 const v1Smart = read('src/client/SmartFilterInitializer.tsx');
 assert.ok(
@@ -177,6 +181,15 @@ assert.ok(
   !control.includes('onChange={(event) => onSearch('),
   'Text search still refreshes on every keystroke',
 );
+// The search-box width is a user setting now, not a literal.
+assert.ok(
+  control.includes('inputWidth = DEFAULT_TEXT_INPUT_WIDTH'),
+  'Text-search width is still hardcoded instead of driven by the shared default',
+);
+assert.ok(
+  control.includes('style={{ width: inputWidth'),
+  'Text-search control ignores the configured width',
+);
 
 const utils = read('src/shared/utils.ts');
 assert.ok(utils.includes('normalizeQuickFilterArray'), 'Quick-filter array normalization is missing');
@@ -216,6 +229,9 @@ assert.ok(
   utils.includes("String(operator || '') === '$eq' ? '$eq' : '$includes'"),
   'Smart-filter operator is not restricted to contains/equals',
 );
+for (const helper of ['normalizeInputWidth', 'smartInputWidth', 'MIN_INPUT_WIDTH', 'MAX_INPUT_WIDTH']) {
+  assert.ok(utils.includes(helper), 'Configurable input width helper is missing: ' + helper);
+}
 
 const locale = read('src/shared/locale.ts');
 assert.ok(locale.includes("'Smart filter'"), 'Smart-filter label is missing from the shared locale');
@@ -223,6 +239,7 @@ assert.ok(
   locale.includes("'Search selected fields'"),
   'Smart-filter placeholder is missing from the shared locale',
 );
+assert.ok(locale.includes("'Input width'"), 'Input-width label is missing from the shared locale');
 
 const v2Model = read('src/client-v2/QuickFilterActionModel.tsx');
 for (const api of ['addFilterGroup', 'removeFilterGroup', 'setFilterActive', 'setPage']) {
@@ -264,6 +281,10 @@ const displayStep = v2Model.slice(v2Model.indexOf('display: {'), v2Model.indexOf
 assert.ok(
   displayStep.includes('resolveTarget(ctx, config)'),
   'V2 display step does not resolve the smart-filter mode',
+);
+assert.ok(
+  displayStep.includes("'x-component': 'NumberPicker'"),
+  'V2 display settings do not expose the configurable input width',
 );
 assert.ok(
   !displayStep.includes('const fieldInterface = getFieldInterface(field) || config.fieldInterface;'),

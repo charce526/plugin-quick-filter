@@ -7,6 +7,12 @@ import type {
 import { SMART_FILTER_MODE, SUPPORTED_INTERFACES, TEXT_INTERFACES } from './types';
 
 const ARRAY_INTERFACES = new Set(['checkboxGroup', 'multipleSelect']);
+
+/** Search-box width bounds; the control never exceeds its container. */
+export const MIN_INPUT_WIDTH = 120;
+export const MAX_INPUT_WIDTH = 800;
+export const DEFAULT_TEXT_INPUT_WIDTH = 280;
+export const DEFAULT_SMART_INPUT_WIDTH = 320;
 const ARRAY_VALUE_OPERATORS = new Set([
   '$match',
   '$notMatch',
@@ -109,6 +115,21 @@ export function normalizeQuickFilterValue(
 ): QuickFilterPrimitive | QuickFilterPrimitive[] | undefined {
   const values = normalizeQuickFilterArray(value);
   return multiple ? values : values[0];
+}
+
+export function normalizeInputWidth(value: unknown, fallback: number = DEFAULT_TEXT_INPUT_WIDTH): number {
+  const raw = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(raw) || raw <= 0) return fallback;
+  return Math.min(MAX_INPUT_WIDTH, Math.max(MIN_INPUT_WIDTH, Math.round(raw)));
+}
+
+export function smartInputWidth(
+  config: Pick<QuickFilterConfig, 'mode' | 'inputWidth'>,
+): number {
+  return normalizeInputWidth(
+    config.inputWidth,
+    isSmartFilter(config) ? DEFAULT_SMART_INPUT_WIDTH : DEFAULT_TEXT_INPUT_WIDTH,
+  );
 }
 
 export function normalizeTextFilterValue(value: unknown): string | undefined {

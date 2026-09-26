@@ -11,13 +11,17 @@ import {
   isSupportedField,
   isTextField,
   isTextInterface,
+  MAX_INPUT_WIDTH,
+  MIN_INPUT_WIDTH,
   normalizeFieldNames,
+  normalizeInputWidth,
   normalizeQuickFilterArray,
   normalizeQuickFilterValue,
   normalizeTextFilterValue,
   operatorOptions,
   resolveFilterMode,
   serializableOptions,
+  smartInputWidth,
   smartOperatorOptions,
 } from '../shared/utils';
 import { useQuickFilterTranslation } from './locale';
@@ -114,6 +118,20 @@ export const quickFilterSettings = new SchemaSettings({
                       'x-decorator': 'FormItem',
                       'x-component': 'Input',
                     },
+                    inputWidth: {
+                      title: t('Input width'),
+                      default: smartInputWidth(config),
+                      // The V1 schema registry exposes antd's `InputNumber`;
+                      // `NumberPicker` only exists in the V2 settings renderer.
+                      'x-decorator': 'FormItem',
+                      'x-component': 'InputNumber',
+                      'x-component-props': {
+                        min: MIN_INPUT_WIDTH,
+                        max: MAX_INPUT_WIDTH,
+                        step: 10,
+                        addonAfter: 'px',
+                      },
+                    },
                   }
                 : {
                     style: {
@@ -192,6 +210,7 @@ export const quickFilterSettings = new SchemaSettings({
                 showTitle: smartValues.showTitle !== false,
                 fullRow: Boolean(smartValues.fullRow),
                 placeholder: smartValues.placeholder,
+                inputWidth: normalizeInputWidth(smartValues.inputWidth, smartInputWidth(config)),
                 defaultValue: normalizeTextFilterValue(smartValues.defaultValue),
                 multiple: false,
                 operator: defaultSmartOperator(smartValues.operator),
@@ -229,6 +248,9 @@ export const quickFilterSettings = new SchemaSettings({
               showTitle: values.showTitle !== false,
               fullRow: Boolean(values.fullRow),
               placeholder: nextTextFilter ? values.placeholder : undefined,
+              inputWidth: nextTextFilter
+                ? normalizeInputWidth(values.inputWidth, smartInputWidth(config))
+                : undefined,
               style: nextTextFilter ? undefined : values.style || 'select',
               multiple: nextMultiple,
               operator: fieldChanged

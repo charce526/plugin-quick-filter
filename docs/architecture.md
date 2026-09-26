@@ -48,6 +48,8 @@ V2 添加菜单中的字段选择会同时写入模型 `props` 和内部初始�
 
 文本字段（`input`、`textarea`、`email`、`phone`、`url`）使用独立的搜索框，默认运算符为 `$includes`，还可选择 `$notIncludes`、`$eq`、`$ne`。输入内容仅保存在控件草稿状态，点击搜索或按 Enter 后才写入筛选组并刷新资源；提交空白内容会移除当前筛选。
 
+搜索框宽度由 `inputWidth` 控制，可在「显示设置」中按个配置，`normalizeInputWidth` 把它夹在 120–800 px 之间；未配置时 `smartInputWidth` 按模式取默认值（单字段 280、智能筛选 320）。V2 的显示设置用 `NumberPicker`（flow-engine 设置渲染器注册），V1 用 antd 的 `InputNumber`（V1 Schema 组件表只注册了它）。宽度只存在页面 Schema / 模型 props 里，不需要服务端数据表。
+
 每个配置通过 `fullRow` 独立决定是否占满操作栏左侧一行。未启用时多个快捷筛选可以同行排列；布局层始终保护右侧操作组不收缩、不被快捷筛选挤到下一行。
 
 ## 智能筛选（多字段搜索）

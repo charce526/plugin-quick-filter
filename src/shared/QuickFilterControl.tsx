@@ -6,7 +6,12 @@ import type {
   QuickFilterPrimitive,
   QuickFilterStyle,
 } from './types';
-import { normalizeQuickFilterValue, resolveFieldOptions, restrictOptions } from './utils';
+import {
+  DEFAULT_TEXT_INPUT_WIDTH,
+  normalizeQuickFilterValue,
+  resolveFieldOptions,
+  restrictOptions,
+} from './utils';
 
 const CLEAR_VALUE = '__xiezuo_quick_filter_clear__';
 const QUICK_FILTER_ROW_STYLES = `
@@ -248,7 +253,7 @@ export function QuickTextFilterControl(props: QuickTextFilterControlProps) {
     searchText,
     fullRow,
     disabled,
-    inputWidth = 280,
+    inputWidth = DEFAULT_TEXT_INPUT_WIDTH,
     onSearch,
   } = props;
   const appliedValue = typeof value === 'string' ? value : '';
