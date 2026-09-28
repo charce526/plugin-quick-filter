@@ -49,6 +49,15 @@ jobs:
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "asset=release/plugin-quick-filter-$VERSION.tgz" >> "$GITHUB_OUTPUT"
+          # 发行说明（可选）：release/plugin-quick-filter-<版本>.md，存在时作为 Release 正文
+          NOTES="release/plugin-quick-filter-$VERSION.md"
+          if [ -f "$NOTES" ]; then
+            echo "notes=$NOTES" >> "$GITHUB_OUTPUT"
+            echo "发现发行说明：$NOTES"
+          else
+            echo "notes=" >> "$GITHUB_OUTPUT"
+            echo "未发现 $NOTES，将使用 GitHub 自动生成的变更说明"
+          fi
           echo "发行版本号：$VERSION"
 
       - name: 校验 package.json 与发行包
@@ -84,5 +93,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
           files: ${{ steps.version.outputs.asset }}
+          # 有 release/plugin-quick-filter-<版本>.md 时用它作为发行说明；否则回退到自动生成的变更说明
+          body_path: ${{ steps.version.outputs.notes }}
           generate_release_notes: true
           draft: false

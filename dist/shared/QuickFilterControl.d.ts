@@ -26,6 +26,8 @@ export interface QuickTextFilterControlProps {
     searchText: React.ReactNode;
     fullRow?: boolean;
     disabled?: boolean;
+    /** Smart filters search several fields at once, so they get a wider box. */
+    inputWidth?: number;
     onSearch: (value: QuickFilterPrimitive | undefined) => void;
 }
 export declare function useResolvedOptions(field?: CollectionFieldLike, fallbackOptions?: QuickFilterOption[]): QuickFilterOption[];

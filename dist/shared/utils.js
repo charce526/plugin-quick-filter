@@ -26,17 +26,28 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var utils_exports = {};
 __export(utils_exports, {
+  DEFAULT_SMART_INPUT_WIDTH: () => DEFAULT_SMART_INPUT_WIDTH,
+  DEFAULT_TEXT_INPUT_WIDTH: () => DEFAULT_TEXT_INPUT_WIDTH,
+  MAX_INPUT_WIDTH: () => MAX_INPUT_WIDTH,
+  MIN_INPUT_WIDTH: () => MIN_INPUT_WIDTH,
   buildQuickFilter: () => buildQuickFilter,
+  buildQuickOrSmartFilter: () => buildQuickOrSmartFilter,
+  buildSmartFilter: () => buildSmartFilter,
   createDefaultConfig: () => createDefaultConfig,
+  createSmartFilterConfig: () => createSmartFilterConfig,
   defaultOperator: () => defaultOperator,
+  defaultSmartOperator: () => defaultSmartOperator,
   effectiveOperator: () => effectiveOperator,
   getFieldInterface: () => getFieldInterface,
   getFieldTitle: () => getFieldTitle,
   hasFilterValue: () => hasFilterValue,
   isArrayInterface: () => isArrayInterface,
+  isSmartFilter: () => isSmartFilter,
   isSupportedField: () => isSupportedField,
   isTextField: () => isTextField,
   isTextInterface: () => isTextInterface,
+  normalizeFieldNames: () => normalizeFieldNames,
+  normalizeInputWidth: () => normalizeInputWidth,
   normalizeOptions: () => normalizeOptions,
   normalizeQuickFilterArray: () => normalizeQuickFilterArray,
   normalizeQuickFilterValue: () => normalizeQuickFilterValue,
@@ -45,12 +56,20 @@ __export(utils_exports, {
   operatorOptions: () => operatorOptions,
   resolveFieldOptions: () => resolveFieldOptions,
   resolveFieldOptionsSync: () => resolveFieldOptionsSync,
+  resolveFilterMode: () => resolveFilterMode,
   restrictOptions: () => restrictOptions,
-  serializableOptions: () => serializableOptions
+  serializableOptions: () => serializableOptions,
+  smartFilterFields: () => smartFilterFields,
+  smartInputWidth: () => smartInputWidth,
+  smartOperatorOptions: () => smartOperatorOptions
 });
 module.exports = __toCommonJS(utils_exports);
 var import_types = require("./types");
 const ARRAY_INTERFACES = /* @__PURE__ */ new Set(["checkboxGroup", "multipleSelect"]);
+const MIN_INPUT_WIDTH = 120;
+const MAX_INPUT_WIDTH = 800;
+const DEFAULT_TEXT_INPUT_WIDTH = 280;
+const DEFAULT_SMART_INPUT_WIDTH = 320;
 const ARRAY_VALUE_OPERATORS = /* @__PURE__ */ new Set([
   "$match",
   "$notMatch",
@@ -80,6 +99,30 @@ function isTextInterface(fieldInterface) {
 function isTextField(field) {
   return isTextInterface(getFieldInterface(field));
 }
+function isSmartFilter(config) {
+  return (config == null ? void 0 : config.mode) === import_types.SMART_FILTER_MODE;
+}
+function smartFilterFields(fields = []) {
+  return (fields || []).filter(isTextField);
+}
+function normalizeFieldNames(value) {
+  const raw = Array.isArray(value) ? value : typeof value === "string" && value ? [value] : [];
+  const names = [];
+  for (const item of raw) {
+    const name = String(item ?? "").trim();
+    if (name && !names.includes(name)) names.push(name);
+  }
+  return names;
+}
+function defaultSmartOperator(operator) {
+  return String(operator || "") === "$eq" ? "$eq" : "$includes";
+}
+function smartOperatorOptions() {
+  return [
+    { value: "$includes", label: "Contains" },
+    { value: "$eq", label: "Equals" }
+  ];
+}
 function hasFilterValue(value) {
   if (Array.isArray(value)) return value.length > 0;
   return value !== void 0 && value !== null && value !== "";
@@ -99,6 +142,17 @@ function normalizeQuickFilterArray(value) {
 function normalizeQuickFilterValue(value, multiple) {
   const values = normalizeQuickFilterArray(value);
   return multiple ? values : values[0];
+}
+function normalizeInputWidth(value, fallback = DEFAULT_TEXT_INPUT_WIDTH) {
+  const raw = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(raw) || raw <= 0) return fallback;
+  return Math.min(MAX_INPUT_WIDTH, Math.max(MIN_INPUT_WIDTH, Math.round(raw)));
+}
+function smartInputWidth(config) {
+  return normalizeInputWidth(
+    config.inputWidth,
+    isSmartFilter(config) ? DEFAULT_SMART_INPUT_WIDTH : DEFAULT_TEXT_INPUT_WIDTH
+  );
 }
 function normalizeTextFilterValue(value) {
   const normalized = typeof value === "string" ? value.trim() : "";
@@ -219,12 +273,47 @@ function buildQuickFilter(config, value, fieldInterface) {
     }
   };
 }
+function buildSmartFilter(config, value) {
+  const keyword = normalizeTextFilterValue(value);
+  const fieldNames = normalizeFieldNames(config.fieldNames);
+  if (!keyword || !fieldNames.length) return void 0;
+  const operator = defaultSmartOperator(config.operator);
+  return {
+    $or: fieldNames.map((fieldName) => ({
+      [fieldName]: { [operator]: keyword }
+    }))
+  };
+}
+function resolveFilterMode(config, fieldInterface) {
+  const smart = isSmartFilter(config);
+  return { smart, textFilter: smart || isTextInterface(fieldInterface) };
+}
+function buildQuickOrSmartFilter(config, value, fieldInterface) {
+  return isSmartFilter(config) ? buildSmartFilter(config, value) : buildQuickFilter(config, value, fieldInterface);
+}
 function serializableOptions(field) {
   return resolveFieldOptionsSync(field).map(({ label, value, disabled }) => ({
     label: typeof label === "string" || typeof label === "number" ? label : String(value),
     value,
     disabled
   }));
+}
+function createSmartFilterConfig(fieldNames = []) {
+  return {
+    mode: import_types.SMART_FILTER_MODE,
+    fieldName: "",
+    fieldNames: normalizeFieldNames(fieldNames),
+    fieldInterface: void 0,
+    fieldTitle: "",
+    showTitle: true,
+    fullRow: false,
+    defaultValue: void 0,
+    multiple: false,
+    style: void 0,
+    operator: "$includes",
+    candidateValues: void 0,
+    options: void 0
+  };
 }
 function createDefaultConfig(field) {
   const fieldInterface = getFieldInterface(field);
@@ -243,17 +332,28 @@ function createDefaultConfig(field) {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  DEFAULT_SMART_INPUT_WIDTH,
+  DEFAULT_TEXT_INPUT_WIDTH,
+  MAX_INPUT_WIDTH,
+  MIN_INPUT_WIDTH,
   buildQuickFilter,
+  buildQuickOrSmartFilter,
+  buildSmartFilter,
   createDefaultConfig,
+  createSmartFilterConfig,
   defaultOperator,
+  defaultSmartOperator,
   effectiveOperator,
   getFieldInterface,
   getFieldTitle,
   hasFilterValue,
   isArrayInterface,
+  isSmartFilter,
   isSupportedField,
   isTextField,
   isTextInterface,
+  normalizeFieldNames,
+  normalizeInputWidth,
   normalizeOptions,
   normalizeQuickFilterArray,
   normalizeQuickFilterValue,
@@ -262,6 +362,10 @@ function createDefaultConfig(field) {
   operatorOptions,
   resolveFieldOptions,
   resolveFieldOptionsSync,
+  resolveFilterMode,
   restrictOptions,
-  serializableOptions
+  serializableOptions,
+  smartFilterFields,
+  smartInputWidth,
+  smartOperatorOptions
 });

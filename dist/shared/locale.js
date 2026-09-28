@@ -35,6 +35,8 @@ const localeResources = {
   "zh-CN": {
     "Quick filter": "\u5FEB\u6377\u7B5B\u9009",
     "Quick filter settings": "\u5FEB\u6377\u7B5B\u9009\u8BBE\u7F6E",
+    "Smart filter": "\u667A\u80FD\u7B5B\u9009",
+    "Search selected fields": "\u641C\u7D22\u6240\u9009\u5B57\u6BB5",
     "Target field": "\u76EE\u6807\u5B57\u6BB5",
     "Field title": "\u5B57\u6BB5\u6807\u9898",
     "Show title": "\u663E\u793A\u6807\u9898",
@@ -43,6 +45,7 @@ const localeResources = {
     Placeholder: "\u5360\u4F4D\u6587\u5B57",
     "Enter keyword": "\u8BF7\u8F93\u5165\u5173\u952E\u8BCD",
     Search: "\u641C\u7D22",
+    "Input width": "\u8F93\u5165\u6846\u5BBD\u5EA6",
     Style: "\u6837\u5F0F",
     Select: "\u4E0B\u62C9\u9009\u62E9",
     Button: "\u6309\u94AE",
@@ -70,6 +73,8 @@ const localeResources = {
   "en-US": {
     "Quick filter": "Quick filter",
     "Quick filter settings": "Quick filter settings",
+    "Smart filter": "Smart filter",
+    "Search selected fields": "Search selected fields",
     "Target field": "Target field",
     "Field title": "Field title",
     "Show title": "Show title",
@@ -78,6 +83,7 @@ const localeResources = {
     Placeholder: "Placeholder",
     "Enter keyword": "Enter keyword",
     Search: "Search",
+    "Input width": "Input width",
     Style: "Style",
     Select: "Select",
     Button: "Button",

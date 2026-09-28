@@ -27,6 +27,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var types_exports = {};
 __export(types_exports, {
   OPTION_INTERFACES: () => OPTION_INTERFACES,
+  SMART_FILTER_MODE: () => SMART_FILTER_MODE,
   SUPPORTED_INTERFACES: () => SUPPORTED_INTERFACES,
   TEXT_INTERFACES: () => TEXT_INTERFACES
 });
@@ -41,9 +42,11 @@ const OPTION_INTERFACES = [
 ];
 const TEXT_INTERFACES = ["input", "textarea", "email", "phone", "url"];
 const SUPPORTED_INTERFACES = [...OPTION_INTERFACES, ...TEXT_INTERFACES];
+const SMART_FILTER_MODE = "smart";
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   OPTION_INTERFACES,
+  SMART_FILTER_MODE,
   SUPPORTED_INTERFACES,
   TEXT_INTERFACES
 });

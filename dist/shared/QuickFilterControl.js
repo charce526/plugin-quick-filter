@@ -212,6 +212,7 @@ function QuickTextFilterControl(props) {
     searchText,
     fullRow,
     disabled,
+    inputWidth = import_utils.DEFAULT_TEXT_INPUT_WIDTH,
     onSearch
   } = props;
   const appliedValue = typeof value === "string" ? value : "";
@@ -227,7 +228,7 @@ function QuickTextFilterControl(props) {
       enterButton: searchText,
       placeholder,
       size: "middle",
-      style: { width: 280, maxWidth: "100%" },
+      style: { width: inputWidth, maxWidth: "100%" },
       value: draftValue,
       onChange: (event) => setDraftValue(event.target.value),
       onSearch: (nextValue) => onSearch(nextValue.trim() || void 0)
