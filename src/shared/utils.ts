@@ -4,9 +4,15 @@ import type {
   QuickFilterOption,
   QuickFilterPrimitive,
 } from './types';
-import { SUPPORTED_INTERFACES, TEXT_INTERFACES } from './types';
+import { SMART_FILTER_MODE, SUPPORTED_INTERFACES, TEXT_INTERFACES } from './types';
 
 const ARRAY_INTERFACES = new Set(['checkboxGroup', 'multipleSelect']);
+
+/** Search-box width bounds; the control never exceeds its container. */
+export const MIN_INPUT_WIDTH = 120;
+export const MAX_INPUT_WIDTH = 800;
+export const DEFAULT_TEXT_INPUT_WIDTH = 280;
+export const DEFAULT_SMART_INPUT_WIDTH = 320;
 const ARRAY_VALUE_OPERATORS = new Set([
   '$match',
   '$notMatch',
@@ -44,6 +50,40 @@ export function isTextField(field?: CollectionFieldLike): boolean {
   return isTextInterface(getFieldInterface(field));
 }
 
+/**
+ * Smart filter: one search box that scans several text fields at once.
+ * Only text interfaces participate, because the control always submits a
+ * keyword and the operators are the text ones (contains / equals).
+ */
+export function isSmartFilter(config?: Pick<QuickFilterConfig, 'mode'>): boolean {
+  return config?.mode === SMART_FILTER_MODE;
+}
+
+export function smartFilterFields(fields: CollectionFieldLike[] = []): CollectionFieldLike[] {
+  return (fields || []).filter(isTextField);
+}
+
+export function normalizeFieldNames(value: unknown): string[] {
+  const raw = Array.isArray(value) ? value : typeof value === 'string' && value ? [value] : [];
+  const names: string[] = [];
+  for (const item of raw) {
+    const name = String(item ?? '').trim();
+    if (name && !names.includes(name)) names.push(name);
+  }
+  return names;
+}
+
+export function defaultSmartOperator(operator?: string): string {
+  return String(operator || '') === '$eq' ? '$eq' : '$includes';
+}
+
+export function smartOperatorOptions() {
+  return [
+    { value: '$includes', label: 'Contains' },
+    { value: '$eq', label: 'Equals' },
+  ];
+}
+
 export function hasFilterValue(value: unknown): boolean {
   if (Array.isArray(value)) return value.length > 0;
   return value !== undefined && value !== null && value !== '';
@@ -75,6 +115,21 @@ export function normalizeQuickFilterValue(
 ): QuickFilterPrimitive | QuickFilterPrimitive[] | undefined {
   const values = normalizeQuickFilterArray(value);
   return multiple ? values : values[0];
+}
+
+export function normalizeInputWidth(value: unknown, fallback: number = DEFAULT_TEXT_INPUT_WIDTH): number {
+  const raw = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(raw) || raw <= 0) return fallback;
+  return Math.min(MAX_INPUT_WIDTH, Math.max(MIN_INPUT_WIDTH, Math.round(raw)));
+}
+
+export function smartInputWidth(
+  config: Pick<QuickFilterConfig, 'mode' | 'inputWidth'>,
+): number {
+  return normalizeInputWidth(
+    config.inputWidth,
+    isSmartFilter(config) ? DEFAULT_SMART_INPUT_WIDTH : DEFAULT_TEXT_INPUT_WIDTH,
+  );
 }
 
 export function normalizeTextFilterValue(value: unknown): string | undefined {
@@ -233,12 +288,68 @@ export function buildQuickFilter(
   };
 }
 
+/**
+ * (A contains keyword) OR (B contains keyword) — one condition per selected
+ * field, combined with `$or` so any matching field keeps the record.
+ */
+export function buildSmartFilter(
+  config: QuickFilterConfig,
+  value: unknown,
+): Record<string, any> | undefined {
+  const keyword = normalizeTextFilterValue(value);
+  const fieldNames = normalizeFieldNames(config.fieldNames);
+  if (!keyword || !fieldNames.length) return undefined;
+
+  const operator = defaultSmartOperator(config.operator);
+  return {
+    $or: fieldNames.map((fieldName) => ({
+      [fieldName]: { [operator]: keyword },
+    })),
+  };
+}
+
+export function resolveFilterMode(
+  config: Pick<QuickFilterConfig, 'mode'>,
+  fieldInterface?: string,
+): { smart: boolean; textFilter: boolean } {
+  const smart = isSmartFilter(config);
+  return { smart, textFilter: smart || isTextInterface(fieldInterface) };
+}
+
+export function buildQuickOrSmartFilter(
+  config: QuickFilterConfig,
+  value: unknown,
+  fieldInterface?: string,
+): Record<string, any> | undefined {
+  return isSmartFilter(config)
+    ? buildSmartFilter(config, value)
+    : buildQuickFilter(config, value, fieldInterface);
+}
+
 export function serializableOptions(field?: CollectionFieldLike): QuickFilterOption[] {
   return resolveFieldOptionsSync(field).map(({ label, value, disabled }) => ({
     label: typeof label === 'string' || typeof label === 'number' ? label : String(value),
     value,
     disabled,
   }));
+}
+
+export function createSmartFilterConfig(fieldNames: string[] = []): QuickFilterConfig {
+  return {
+    mode: SMART_FILTER_MODE,
+    fieldName: '',
+    fieldNames: normalizeFieldNames(fieldNames),
+    fieldInterface: undefined,
+    fieldTitle: '',
+    showTitle: true,
+    fullRow: false,
+    defaultValue: undefined,
+    multiple: false,
+    style: undefined,
+    operator: '$includes',
+    candidateValues: undefined,
+    options: undefined,
+  };
 }
 
 export function createDefaultConfig(field: CollectionFieldLike): QuickFilterConfig {

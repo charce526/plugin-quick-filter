@@ -13,6 +13,7 @@ const required = [
   'src/client/QuickFilter.tsx',
   'src/client/QuickFilterInitializer.tsx',
   'src/client/quickFilterSettings.tsx',
+  'src/client/SmartFilterInitializer.tsx',
   'src/client-v2/index.tsx',
   'src/client-v2/QuickFilterActionModel.tsx',
   'src/server/index.ts',
@@ -28,7 +29,7 @@ for (const path of required) {
 
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 assert.equal(pkg.name, '@xiezuo/plugin-quick-filter');
-assert.equal(pkg.version, '2.1.0');
+assert.equal(pkg.version, '2.3.0');
 assert.equal(pkg.author?.name, '偕作BIM');
 assert.equal(pkg.license, 'AGPL-3.0-only');
 for (const dependency of [
@@ -98,6 +99,10 @@ assert.ok(
   v1Entry.includes('this.app.flowEngine.registerModels'),
   'Hybrid-shell V2 model is not registered from the legacy client entry',
 );
+assert.ok(
+  v1Entry.includes('registerQuickFilterDragHandler'),
+  'Hybrid-shell V2 drag handle is not registered from the legacy client entry',
+);
 
 const v1Filter = read('src/client/QuickFilter.tsx');
 assert.ok(v1Filter.includes('mergeFilter'), 'V1 filter composition is missing');
@@ -108,6 +113,16 @@ assert.ok(
 );
 assert.ok(v1Filter.includes('useSchemaToolbarRender'), 'V1 schema settings toolbar is not rendered');
 assert.ok(v1Filter.includes('<SortableItem'), 'V1 quick filter is not mounted as a configurable schema item');
+assert.ok(
+  v1Filter.includes('buildQuickOrSmartFilter'),
+  'V1 filter composition does not handle the smart-filter mode',
+);
+// Native V1 drag-sort: the schema item plus the draggable schema toolbar are
+// what DndContext#onDragEnd reorders through `insertBeforeBeginOrAfterEnd`.
+assert.ok(
+  v1Filter.includes('renderToolbar({ draggable: true })'),
+  'V1 quick filter does not render the native draggable schema toolbar',
+);
 
 const v1Initializer = read('src/client/QuickFilterInitializer.tsx');
 assert.ok(
@@ -122,6 +137,24 @@ assert.ok(!v1Initializer.includes('<FormProvider'), 'V1 initializer redundantly 
 
 const v1Settings = read('src/client/quickFilterSettings.tsx');
 assert.ok(v1Settings.includes("type: 'remove'"), 'V1 remove setting is missing');
+assert.ok(
+  v1Settings.includes('fieldNames'),
+  'V1 settings do not expose the smart-filter multi-field target',
+);
+assert.ok(
+  v1Settings.includes("'x-component': 'InputNumber'"),
+  'V1 settings do not expose the configurable input width',
+);
+
+const v1Smart = read('src/client/SmartFilterInitializer.tsx');
+assert.ok(
+  v1Smart.includes("'x-component-props': { mode: 'multiple', allowClear: true }"),
+  'V1 smart-filter target field is not a multiple picker',
+);
+assert.ok(
+  v1Smart.includes('isTextField'),
+  'V1 smart-filter does not restrict its targets to text fields',
+);
 
 const control = read('src/shared/QuickFilterControl.tsx');
 assert.ok(control.includes("styleType === 'select'"), 'Select display mode is missing');
@@ -158,6 +191,15 @@ assert.ok(
   !control.includes('onChange={(event) => onSearch('),
   'Text search still refreshes on every keystroke',
 );
+// The search-box width is a user setting now, not a literal.
+assert.ok(
+  control.includes('inputWidth = DEFAULT_TEXT_INPUT_WIDTH'),
+  'Text-search width is still hardcoded instead of driven by the shared default',
+);
+assert.ok(
+  control.includes('style={{ width: inputWidth'),
+  'Text-search control ignores the configured width',
+);
 
 const utils = read('src/shared/utils.ts');
 assert.ok(utils.includes('normalizeQuickFilterArray'), 'Quick-filter array normalization is missing');
@@ -177,6 +219,37 @@ assert.ok(utils.includes('normalizeTextFilterValue'), 'Text-filter value normali
 for (const operator of ['$includes', '$notIncludes']) {
   assert.ok(utils.includes(`'${operator}'`), `Text-filter operator is missing: ${operator}`);
 }
+
+// Smart filter: one submitted keyword scanned across several text fields.
+for (const helper of [
+  'isSmartFilter',
+  'buildSmartFilter',
+  'createSmartFilterConfig',
+  'normalizeFieldNames',
+  'defaultSmartOperator',
+  'smartOperatorOptions',
+  'smartFilterFields',
+  'resolveFilterMode',
+  'buildQuickOrSmartFilter',
+]) {
+  assert.ok(utils.includes(helper), 'Smart-filter helper is missing: ' + helper);
+}
+assert.ok(utils.includes('$or:'), 'Smart filter does not combine per-field conditions with $or');
+assert.ok(
+  utils.includes("String(operator || '') === '$eq' ? '$eq' : '$includes'"),
+  'Smart-filter operator is not restricted to contains/equals',
+);
+for (const helper of ['normalizeInputWidth', 'smartInputWidth', 'MIN_INPUT_WIDTH', 'MAX_INPUT_WIDTH']) {
+  assert.ok(utils.includes(helper), 'Configurable input width helper is missing: ' + helper);
+}
+
+const locale = read('src/shared/locale.ts');
+assert.ok(locale.includes("'Smart filter'"), 'Smart-filter label is missing from the shared locale');
+assert.ok(
+  locale.includes("'Search selected fields'"),
+  'Smart-filter placeholder is missing from the shared locale',
+);
+assert.ok(locale.includes("'Input width'"), 'Input-width label is missing from the shared locale');
 
 const v2Model = read('src/client-v2/QuickFilterActionModel.tsx');
 for (const api of ['addFilterGroup', 'removeFilterGroup', 'setFilterActive', 'setPage']) {
@@ -201,6 +274,60 @@ assert.ok(
 assert.ok(
   !v2Model.includes('return () => model.detach()'),
   'V2 filter is still detached by the React effect cleanup path',
+);
+assert.ok(v2Model.includes('quick-filter-smart'), 'V2 smart-filter menu entry is missing');
+assert.ok(v2Model.includes("tExpr('Smart filter'"), 'V2 smart-filter menu label is missing');
+assert.ok(
+  v2Model.includes('buildQuickOrSmartFilter'),
+  'V2 runtime does not build smart-filter conditions',
+);
+assert.ok(v2Model.includes('smartOperatorOptions'), 'V2 smart-filter operators are missing');
+assert.ok(v2Model.includes('fieldNames'), 'V2 smart-filter multi-field target is missing');
+
+// Native V2 drag-sort. NocoBase only wraps actions rendered on the RIGHT of a
+// collection block's action bar with `Droppable` and only gives them the
+// toolbar `DragHandler`. Quick filters stay on the left, so the model has to
+// supply the drop target and the handle itself; the drop still runs through
+// the block's `DndProvider` -> `flowEngine.moveModel` -> `sortIndex`.
+assert.ok(v2Model.includes('<Droppable'), 'V2 quick filter does not register a native drop target');
+assert.ok(v2Model.includes('registerQuickFilterDragHandler'), 'V2 drag-handle registration helper is missing');
+assert.ok(
+  v2Model.includes('flowSettings.addToolbarItem'),
+  'V2 drag handle is not registered through the official toolbar-item extension point',
+);
+assert.ok(v2Model.includes('component: DragHandler'), 'V2 drag handle does not reuse the native DragHandler');
+assert.ok(v2Model.includes('isQuickFilterActionModel'), 'V2 drag-handle visibility guard is missing');
+assert.ok(
+  v2Model.includes("model.use === 'QuickFilterActionModel'"),
+  'V2 drag-handle guard does not survive a duplicate model-class copy',
+);
+assert.ok(
+  v2Model.includes("model.props?.position === 'left'"),
+  'V2 drag handle is not kept complementary to the block right-group branch',
+);
+
+const v2Entry = read('src/client-v2/index.tsx');
+assert.ok(v2Entry.includes('QuickFilterActionModel'), 'V2 entry does not register the quick-filter action model');
+assert.ok(
+  v2Entry.includes('registerQuickFilterDragHandler(this.app.flowEngine)'),
+  'V2 entry does not register the quick-filter drag handle',
+);
+
+// The display step must branch on the resolved mode, not on the raw field
+// interface, otherwise a smart filter has no interface and its placeholder
+// never reaches the search box.
+const displayStep = v2Model.slice(v2Model.indexOf('display: {'), v2Model.indexOf('values: {'));
+assert.ok(
+  displayStep.includes('resolveTarget(ctx, config)'),
+  'V2 display step does not resolve the smart-filter mode',
+);
+assert.ok(
+  displayStep.includes("'x-component': 'NumberPicker'"),
+  'V2 display settings do not expose the configurable input width',
+);
+assert.ok(
+  !displayStep.includes('const fieldInterface = getFieldInterface(field) || config.fieldInterface;'),
+  'V2 display handler still branches on the raw field interface',
 );
 
 assert.equal(read('client.js').trim(), "module.exports = require('./dist/client/index.js');");

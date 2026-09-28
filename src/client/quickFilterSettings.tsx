@@ -4,15 +4,25 @@ import { SchemaSettings, useCollection, useCompile, useDesignable } from '@nocob
 import type { CollectionFieldLike, QuickFilterConfig } from '../shared/types';
 import {
   defaultOperator,
+  defaultSmartOperator,
   getFieldInterface,
   getFieldTitle,
+  isSmartFilter,
   isSupportedField,
+  isTextField,
   isTextInterface,
+  MAX_INPUT_WIDTH,
+  MIN_INPUT_WIDTH,
+  normalizeFieldNames,
+  normalizeInputWidth,
   normalizeQuickFilterArray,
   normalizeQuickFilterValue,
   normalizeTextFilterValue,
   operatorOptions,
+  resolveFilterMode,
   serializableOptions,
+  smartInputWidth,
+  smartOperatorOptions,
 } from '../shared/utils';
 import { useQuickFilterTranslation } from './locale';
 
@@ -31,28 +41,51 @@ export const quickFilterSettings = new SchemaSettings({
         const { t } = useQuickFilterTranslation();
         const config = (fieldSchema['x-component-props'] || {}) as QuickFilterConfig;
         const fields = ((collection?.fields || []) as CollectionFieldLike[]).filter(isSupportedField);
+        const smart = isSmartFilter(config);
+        const textFields = fields.filter(isTextField);
         const selectedField = fields.find((item) => item.name === config.fieldName) || fields[0];
         const options = serializableOptions(selectedField);
         const fieldInterface = getFieldInterface(selectedField);
-        const textFilter = isTextInterface(fieldInterface || config.fieldInterface);
+        const { textFilter } = resolveFilterMode(config, fieldInterface || config.fieldInterface);
         const multiple = config.style === 'multiButton' || Boolean(config.multiple);
+        const title = t('Quick filter settings');
 
         return {
-          title: t('Quick filter settings'),
+          title,
           schema: {
             type: 'object',
             properties: {
-              fieldName: {
-                title: t('Target field'),
-                default: config.fieldName,
-                enum: fields.map((item) => ({
-                  label: compile(getFieldTitle(item)),
-                  value: item.name,
-                })),
-                required: true,
-                'x-decorator': 'FormItem',
-                'x-component': 'Select',
-              },
+              // Smart filters search several text fields from one box, so the
+              // target field is a multiple picker limited to text interfaces.
+              ...(smart
+                ? {
+                    fieldNames: {
+                      type: 'array',
+                      title: t('Target field'),
+                      default: normalizeFieldNames(config.fieldNames),
+                      enum: textFields.map((item) => ({
+                        label: compile(getFieldTitle(item)),
+                        value: item.name,
+                      })),
+                      required: true,
+                      'x-decorator': 'FormItem',
+                      'x-component': 'Select',
+                      'x-component-props': { mode: 'multiple', allowClear: true },
+                    },
+                  }
+                : {
+                    fieldName: {
+                      title: t('Target field'),
+                      default: config.fieldName,
+                      enum: fields.map((item) => ({
+                        label: compile(getFieldTitle(item)),
+                        value: item.name,
+                      })),
+                      required: true,
+                      'x-decorator': 'FormItem',
+                      'x-component': 'Select',
+                    },
+                  }),
               fieldTitle: {
                 title: t('Field title'),
                 default: config.fieldTitle,
@@ -85,6 +118,20 @@ export const quickFilterSettings = new SchemaSettings({
                       'x-decorator': 'FormItem',
                       'x-component': 'Input',
                     },
+                    inputWidth: {
+                      title: t('Input width'),
+                      default: smartInputWidth(config),
+                      // The V1 schema registry exposes antd's `InputNumber`;
+                      // `NumberPicker` only exists in the V2 settings renderer.
+                      'x-decorator': 'FormItem',
+                      'x-component': 'InputNumber',
+                      'x-component-props': {
+                        min: MIN_INPUT_WIDTH,
+                        max: MAX_INPUT_WIDTH,
+                        step: 10,
+                        addonAfter: 'px',
+                      },
+                    },
                   }
                 : {
                     style: {
@@ -107,11 +154,15 @@ export const quickFilterSettings = new SchemaSettings({
                   }),
               operator: {
                 title: t('Operator'),
-                default: config.operator || defaultOperator(fieldInterface, multiple),
-                enum: operatorOptions(fieldInterface).map((item) => ({
-                  value: item.value,
-                  label: t(item.label),
-                })),
+                default: smart
+                  ? defaultSmartOperator(config.operator)
+                  : config.operator || defaultOperator(fieldInterface, multiple),
+                enum: (smart ? smartOperatorOptions() : operatorOptions(fieldInterface)).map(
+                  (item) => ({
+                    value: item.value,
+                    label: t(item.label),
+                  }),
+                ),
                 'x-decorator': 'FormItem',
                 'x-component': 'Select',
               },
@@ -146,6 +197,41 @@ export const quickFilterSettings = new SchemaSettings({
             },
           } as ISchema,
           onSubmit: (values: QuickFilterConfig) => {
+            const smartValues = values as QuickFilterConfig & { fieldNames?: string[] };
+            if (smart) {
+              const nextProps: QuickFilterConfig = {
+                ...config,
+                ...smartValues,
+                mode: 'smart',
+                fieldName: '',
+                fieldNames: normalizeFieldNames(smartValues.fieldNames),
+                fieldInterface: undefined,
+                fieldTitle: smartValues.fieldTitle || '',
+                showTitle: smartValues.showTitle !== false,
+                fullRow: Boolean(smartValues.fullRow),
+                placeholder: smartValues.placeholder,
+                inputWidth: normalizeInputWidth(smartValues.inputWidth, smartInputWidth(config)),
+                defaultValue: normalizeTextFilterValue(smartValues.defaultValue),
+                multiple: false,
+                operator: defaultSmartOperator(smartValues.operator),
+                candidateValues: undefined,
+                options: undefined,
+                style: undefined,
+              };
+              fieldSchema.title = nextProps.fieldTitle || t('Smart filter');
+              fieldSchema['x-component-props'] = nextProps;
+              Object.assign((formilyField as any).componentProps || {}, nextProps);
+              dn.emit('patch', {
+                schema: {
+                  'x-uid': fieldSchema['x-uid'],
+                  title: fieldSchema.title,
+                  'x-component-props': nextProps,
+                },
+              });
+              dn.refresh();
+              return;
+            }
+
             const nextField = fields.find((item) => item.name === values.fieldName) || selectedField;
             const nextInterface = getFieldInterface(nextField);
             const nextTextFilter = isTextInterface(nextInterface);
@@ -162,6 +248,9 @@ export const quickFilterSettings = new SchemaSettings({
               showTitle: values.showTitle !== false,
               fullRow: Boolean(values.fullRow),
               placeholder: nextTextFilter ? values.placeholder : undefined,
+              inputWidth: nextTextFilter
+                ? normalizeInputWidth(values.inputWidth, smartInputWidth(config))
+                : undefined,
               style: nextTextFilter ? undefined : values.style || 'select',
               multiple: nextMultiple,
               operator: fieldChanged

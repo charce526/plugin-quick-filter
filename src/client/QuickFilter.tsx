@@ -13,11 +13,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { QuickFilterControl, QuickTextFilterControl } from '../shared/QuickFilterControl';
 import type { CollectionFieldLike, QuickFilterConfig, QuickFilterPrimitive } from '../shared/types';
 import {
-  buildQuickFilter,
+  buildQuickOrSmartFilter,
   getFieldInterface,
   getFieldTitle,
   hasFilterValue,
-  isTextInterface,
+  isSmartFilter,
+  resolveFilterMode,
+  smartInputWidth,
 } from '../shared/utils';
 import { useQuickFilterTranslation } from './locale';
 
@@ -38,8 +40,9 @@ export function QuickFilter() {
     [collection?.fields, config.fieldName],
   );
   const [value, setValue] = useState<QuickFilterConfig['defaultValue']>(config.defaultValue);
+  const smart = isSmartFilter(config);
   const fieldInterface = getFieldInterface(currentField) || config.fieldInterface;
-  const textFilter = isTextInterface(fieldInterface);
+  const { textFilter } = resolveFilterMode(config, fieldInterface);
 
   const apply = useCallback(
     (nextValue: QuickFilterPrimitive | QuickFilterPrimitive[] | undefined) => {
@@ -49,7 +52,7 @@ export function QuickFilter() {
       const firstParams = service.params?.[0] || {};
       const secondParams = service.params?.[1] || {};
       const filters = { ...(secondParams.filters || {}) };
-      const filter = buildQuickFilter(config, nextValue, fieldInterface);
+      const filter = buildQuickOrSmartFilter(config, nextValue, fieldInterface);
 
       if (filter) filters[sourceKey] = filter;
       else delete filters[sourceKey];
@@ -112,13 +115,22 @@ export function QuickFilter() {
       {renderToolbar({ draggable: true })}
       {textFilter ? (
         <QuickTextFilterControl
-          title={compile(config.fieldTitle || getFieldTitle(currentField) || config.fieldName)}
+          title={
+            smart
+              ? compile(config.fieldTitle || t('Smart filter'))
+              : compile(config.fieldTitle || getFieldTitle(currentField) || config.fieldName)
+          }
           showTitle={config.showTitle !== false}
           tooltip={compile(config.tooltip)}
           value={value}
-          placeholder={compile(config.placeholder || t('Enter keyword')) as string}
+          placeholder={
+            compile(
+              config.placeholder || t(smart ? 'Search selected fields' : 'Enter keyword'),
+            ) as string
+          }
           searchText={t('Search')}
           fullRow={config.fullRow}
+          inputWidth={smartInputWidth(config)}
           onSearch={handleChange}
         />
       ) : (

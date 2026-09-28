@@ -48,7 +48,40 @@ V2 添加菜单中的字段选择会同时写入模型 `props` 和内部初始�
 
 文本字段（`input`、`textarea`、`email`、`phone`、`url`）使用独立的搜索框，默认运算符为 `$includes`，还可选择 `$notIncludes`、`$eq`、`$ne`。输入内容仅保存在控件草稿状态，点击搜索或按 Enter 后才写入筛选组并刷新资源；提交空白内容会移除当前筛选。
 
+搜索框宽度由 `inputWidth` 控制，可在「显示设置」中按个配置，`normalizeInputWidth` 把它夹在 120–800 px 之间；未配置时 `smartInputWidth` 按模式取默认值（单字段 280、智能筛选 320）。V2 的显示设置用 `NumberPicker`（flow-engine 设置渲染器注册），V1 用 antd 的 `InputNumber`（V1 Schema 组件表只注册了它）。宽度只存在页面 Schema / 模型 props 里，不需要服务端数据表。
+
 每个配置通过 `fullRow` 独立决定是否占满操作栏左侧一行。未启用时多个快捷筛选可以同行排列；布局层始终保护右侧操作组不收缩、不被快捷筛选挤到下一行。
+
+## 智能筛选（多字段搜索）
+
+配置层用 `mode: 'smart'` 区分：单字段筛选用 `fieldName`，智能筛选用 `fieldNames` 数组，其余配置（标题、提示、独占一行、默认值、运算符）复用同一份结构，因此两套适配层只需在“目标字段”与“运算符”两处分流。
+
+目标字段限定为文本接口（`input`、`textarea`、`email`、`phone`、`url`），因为控件始终提交关键词，运算符也只有文本语义。共享层提供 `isSmartFilter`、`normalizeFieldNames`、`smartFilterFields`、`defaultSmartOperator`、`smartOperatorOptions` 与 `buildSmartFilter`；`buildQuickOrSmartFilter` 按模式分派，两个适配层都调用它。
+
+筛选条件按字段拆成多条再用 `$or` 合并：
+
+```json
+{ "$or": [ { "A": { "$includes": "abc" } }, { "B": { "$includes": "abc" } } ] }
+```
+
+运算符只有 `$includes`（包含）与 `$eq`（等于），`defaultSmartOperator` 会把其它值兜底成 `$includes`。关键词仍需点击搜索或按 Enter 提交，空白关键词移除整个筛选组。
+
+V2 在「快捷筛选」子菜单首位插入 `quick-filter-smart`，与字段项共用 `QuickFilterActionModel`；`getQuickFilterConfig` 改为按“是否已有目标（单字段或字段数组）”判断，避免初始化参数覆盖用户后来修改的字段列表。V1 新增 `SmartFilterInitializer` 作为操作栏同级菜单项，运行时与设置仍复用 `QuickFilter` 和 `actionSettings:quickFilter`。
+
+## 拖拽排序
+
+两套页面引擎都复用 NocoBase 原生拖拽。
+
+**V1（Schema）**：`QuickFilter` 用 `SortableItem` 包裹并渲染 `useSchemaToolbarRender` 返回的原生工具栏（`draggable: true`）。`SortableItem` 在 `designable` 时同时注册 `useDraggable` / `useDroppable`（`data` 里带上当前 schema），`ActionBar` 外层已提供 `DndContext`，其 `onDragEnd` 在两者同父级时调用 `dn.insertBeforeBeginOrAfterEnd(activeSchema)`，直接改写 UI Schema 顺序，因此 V1 无需额外代码。
+
+**V2（FlowEngine）**：`TableBlockModel#renderComponent` 用 `DndProvider` 包住整个工具栏，但只对 `props.position !== 'left'` 的动作做两件事：包一层 `<Droppable model={action}>`，并在 `extraToolbarItems` 里塞入 `{ key: 'drag-handler', component: DragHandler, sort: 1 }`。`DndProvider` 的 `onDragEnd` 默认调用 `flowEngine.moveModel(active.id, over.id, { persist: true })`，内部按 `sortIndex` 重排父级 `subModels` 数组并持久化。
+
+快捷筛选必须留在操作栏左侧（`position: 'left'`），因此落进了没有拖拽接线的分支。插件补齐两处，其余完全交给原生：
+
+1. `QuickFilterActionModel#render` 用 flow-engine 的 `<Droppable model={this}>` 包裹运行时内容，让自己的 `uid` 成为合法落点；
+2. `registerQuickFilterDragHandler(flowEngine)` 通过官方扩展点 `flowSettings.addToolbarItem` 注册同一个原生 `DragHandler`，`visible` 只在“是快捷筛选 且 `position === 'left'`”时为真——这正是区块分支的补集，所以快捷筛选若被放到右侧分组也只会看到一个手柄，不会重复。
+
+`isQuickFilterActionModel` 同时用 `instanceof` 和 `model.use === 'QuickFilterActionModel'` 判断，避免 2.2.x 混合外壳下模型类被不同 bundle 各加载一份导致 `instanceof` 失效。两个客户端入口（`src/client-v2/index.tsx` 与混合外壳下的 `src/client/index.tsx`）都会注册该手柄，与模型注册保持同一套桥接策略。
 
 ## 配置持久化
 

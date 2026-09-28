@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.2.0 - 2026-09-26
+
+- Added the smart filter: one submitted search box whose target field is a multiple picker, so a single keyword searches several text fields at once.
+- Combined the per-field conditions with `$or`: "Contains" builds `(A contains keyword) OR (B contains keyword)`, "Equals" builds `(A equals keyword) OR (B equals keyword)`. Only these two operators are offered.
+- Restricted smart-filter targets to text interfaces (`input`, `textarea`, `email`, `phone`, `url`); a newly added smart filter starts from the first text field.
+- V2: added a "Smart filter" entry to the quick-filter submenu; Basic settings switch the target field to a multiple picker and Value settings expose only Contains/Equals.
+- V1: added a sibling "Smart filter" action-bar initializer and reused the quick-filter settings modal for the multi-field target list.
+- Widened the smart-filter search box and defaulted its placeholder to "Search selected fields".
+- Fixed the declaration build: cast the block resource through `unknown` (TS2352) and pass the hybrid-shell model registry entry as `any` (TS2322), so the model types resolve against either FlowEngine copy.
+- Fixed the smart-filter placeholder: the V2 display step now branches on the resolved mode instead of the field interface, so “Placeholder” overrides the default “Search selected fields” hint.
+- Made the search-box width configurable: “Input width” (120–800 px) was added to Display settings for text and smart filters in both V1 and V2. It replaces the hardcoded 280 px and is stored with the rest of the filter config (page schema / model props), so no server collection is involved.
+
+- Added drag-sort: quick filters (including smart filters) can now be dragged to change their order in the action bar, and the order is persisted with the page.
+- V1 keeps using the native Schema drag-sort (the `SortableItem` + draggable schema toolbar that was already rendered), so no behaviour change there.
+- V2 hooks into the native FlowEngine drag-sort: the model renders itself inside flow-engine's `Droppable` (so it becomes a valid drop target) and the native `DragHandler` is registered on the quick-filter toolbar through `flowSettings.addToolbarItem`. Dropping still runs the block's own `DndProvider` → `flowEngine.moveModel` → `sortIndex` persistence.
+- V2 keeps quick filters on the left (`position: 'left'`): NocoBase only wires `Droppable` + the toolbar drag handle for actions rendered on the right, so the plugin supplies the missing half. The `visible` guard is the exact complement of that branch, so a filter moved to the right group still shows a single handle.
+- Registered the drag handle from both client entries, matching the existing hybrid-shell model bridge.
+
 ## 2.1.0 - 2026-09-18
 
 - Persisted the field selected from the V2 quick-filter submenu as initialization step parameters, so newly added filters work immediately without selecting the target field again in Basic settings.
